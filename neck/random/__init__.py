@@ -1,1 +1,1 @@
-from .random_backend import *  # noqa: F401, F403
+from .rand_tensor import rand
