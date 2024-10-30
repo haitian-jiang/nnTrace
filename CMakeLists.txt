@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.12)
 set(CMAKE_CXX_STANDARD 17)
-project(neck)
+project(random_backend)
 
 # Set the Python executable to the one in the conda environment
 set(Python3_EXECUTABLE $ENV{CONDA_PREFIX}/bin/python)
@@ -37,12 +37,12 @@ message(STATUS "Torch Include: ${TORCH_INCLUDE_DIRS}")
 
 
 # Create the C++ Python module, linking necessary files
-pybind11_add_module(_neck src/bindings.cpp src/example.cpp)
+pybind11_add_module(${PROJECT_NAME} src/bindings.cpp src/example.cpp)
 
 # Link PyTorch to the module
-target_link_libraries(_neck PRIVATE ${TORCH_LIBRARIES})
-target_include_directories(_neck PRIVATE ${TORCH_INCLUDE_DIRS})
-target_compile_features(_neck PRIVATE cxx_std_14)
+target_link_libraries(${PROJECT_NAME} PRIVATE ${TORCH_LIBRARIES})
+target_include_directories(${PROJECT_NAME} PRIVATE ${TORCH_INCLUDE_DIRS})
+target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_14)
 
 # To suppress warnings in PyTorch, you might want to set
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")

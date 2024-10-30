@@ -1,2 +1,2 @@
-# __init__.py
-from ._neck import *
+import torch
+from . import random
