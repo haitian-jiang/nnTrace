@@ -3,7 +3,7 @@ set(CMAKE_CXX_STANDARD 17)
 project(random_backend)
 
 # Set the Python executable to the one in the conda environment
-set(Python3_EXECUTABLE $ENV{CONDA_PREFIX}/bin/python)
+set(Python3_EXECUTABLE $ENV{CONDA_PREFIX}/bin/python)  # need if/else for non-conda env
 # Find Python interpreter and development files in the current environment
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
 
@@ -19,25 +19,26 @@ find_package(pybind11 REQUIRED PATHS ${pybind11_DIR})
 # add torch into cmake path
 execute_process(
         COMMAND python -c "import torch; import os; print(os.path.dirname(torch.__file__), end='')"
-        OUTPUT_VARIABLE TorchPath
+        OUTPUT_VARIABLE TORCH_PATH
 )
-list(APPEND CMAKE_PREFIX_PATH ${TorchPath})
+list(APPEND CMAKE_PREFIX_PATH ${TORCH_PATH})
 
 # show torch version
-# execute_process(
-#         COMMAND python -c "import torch; print(torch.__version__, end='')"
-#         OUTPUT_VARIABLE TorchVersion
-# )
-# message(STATUS "Torch Version: ${TorchVersion}")
+execute_process(
+        COMMAND python -c "import torch; print(torch.__version__, end='')"
+        OUTPUT_VARIABLE TORCH_VERSION
+)
 
 find_package(Torch REQUIRED)
 include_directories(${TORCH_INCLUDE_DIRS})
+message(STATUS "Found torch: version ${TORCH_VERSION}")
 message(STATUS "torch library: ${TORCH_LIBRARY}")
-message(STATUS "Torch Include: ${TORCH_INCLUDE_DIRS}")
+message(STATUS "torch include: ${TORCH_INCLUDE_DIRS}")
 
 
 # Create the C++ Python module, linking necessary files
-pybind11_add_module(${PROJECT_NAME} src/bindings.cpp src/example.cpp)
+file(GLOB SRC_FILES src/*.cpp)
+pybind11_add_module(${PROJECT_NAME} ${SRC_FILES})
 
 # Link PyTorch to the module
 target_link_libraries(${PROJECT_NAME} PRIVATE ${TORCH_LIBRARIES})

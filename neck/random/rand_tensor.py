@@ -72,4 +72,4 @@ def rand(
         random_matrix = seed_to_rand(seeds)
         return torch.from_numpy(random_matrix)
     elif backend == "cxx":
-        return seed_to_rand_cxx(seeds)
+        return seed_to_rand_cxx(torch.from_numpy(seeds.astype(np.uint64)))
