@@ -18,15 +18,15 @@ find_package(pybind11 REQUIRED PATHS ${pybind11_DIR})
 
 # add torch into cmake path
 execute_process(
-        COMMAND python -c "import torch; import os; print(os.path.dirname(torch.__file__), end='')"
-        OUTPUT_VARIABLE TORCH_PATH
+    COMMAND python -c "import torch; import os; print(os.path.dirname(torch.__file__), end='')"
+    OUTPUT_VARIABLE TORCH_PATH
 )
 list(APPEND CMAKE_PREFIX_PATH ${TORCH_PATH})
 
 # show torch version
 execute_process(
-        COMMAND python -c "import torch; print(torch.__version__, end='')"
-        OUTPUT_VARIABLE TORCH_VERSION
+    COMMAND python -c "import torch; print(torch.__version__, end='')"
+    OUTPUT_VARIABLE TORCH_VERSION
 )
 
 find_package(Torch REQUIRED)
@@ -39,6 +39,14 @@ message(STATUS "torch include: ${TORCH_INCLUDE_DIRS}")
 # Create the C++ Python module, linking necessary files
 file(GLOB SRC_FILES src/*.cpp)
 pybind11_add_module(${PROJECT_NAME} ${SRC_FILES})
+
+# Find libtorch_python.so for linux, but adding this for mac will cause symbol not found
+if (CMAKE_SYSTEM_NAME MATCHES "Linux")
+    message(STATUS "Compiling on Linux")
+    find_library(TORCH_PYTHON_LIBRARY torch_python PATHS "${TORCH_INSTALL_PREFIX}/lib")
+    message(STATUS "TORCH_PYTHON_LIBRARY: ${TORCH_PYTHON_LIBRARY}")
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${TORCH_PYTHON_LIBRARY})
+endif()
 
 # Link PyTorch to the module
 target_link_libraries(${PROJECT_NAME} PRIVATE ${TORCH_LIBRARIES})
