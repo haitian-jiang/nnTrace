@@ -2,7 +2,7 @@ import numpy as np
 import torch
 import xxhash
 from typing import List, Tuple, Optional
-from .random_backend import seed_to_rand_cxx
+from .random_backend import seed_to_rand_cxx, seed_to_rand_parallel
 from numba import njit
 
 
@@ -73,3 +73,5 @@ def rand(
         return torch.from_numpy(random_matrix)
     elif backend == "cxx":
         return seed_to_rand_cxx(torch.from_numpy(seeds.astype(np.uint64)))
+    elif backend == "parallel":
+        return seed_to_rand_parallel(torch.from_numpy(seeds.astype(np.uint64)))

@@ -40,13 +40,19 @@ message(STATUS "torch include: ${TORCH_INCLUDE_DIRS}")
 file(GLOB SRC_FILES src/*.cpp)
 pybind11_add_module(${PROJECT_NAME} ${SRC_FILES})
 
-# Find libtorch_python.so for linux, but adding this for mac will cause symbol not found
+
 if (CMAKE_SYSTEM_NAME MATCHES "Linux")
     message(STATUS "Compiling on Linux")
+    # Find libtorch_python.so for linux, but adding this for mac will cause symbol not found
     find_library(TORCH_PYTHON_LIBRARY torch_python PATHS "${TORCH_INSTALL_PREFIX}/lib")
     message(STATUS "TORCH_PYTHON_LIBRARY: ${TORCH_PYTHON_LIBRARY}")
     target_link_libraries(${PROJECT_NAME} PRIVATE ${TORCH_PYTHON_LIBRARY})
+    find_package(TBB REQUIRED)
+    target_link_libraries(${PROJECT_NAME} PRIVATE TBB::tbb)
 endif()
+
+find_package(OpenMP REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX)
 
 # Link PyTorch to the module
 target_link_libraries(${PROJECT_NAME} PRIVATE ${TORCH_LIBRARIES})
