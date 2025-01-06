@@ -3,7 +3,7 @@ import torch
 import xxhash
 from typing import List, Tuple, Optional
 from .random_backend import seed_to_rand_cxx, seed_to_rand_parallel
-from numba import njit
+# from numba import njit
 
 
 def _slice_to_index(slices: Tuple[slice]) -> Tuple[np.ndarray]:
@@ -28,13 +28,13 @@ def _slice_to_index(slices: Tuple[slice]) -> Tuple[np.ndarray]:
     return multi_index
 
 
-@njit
-def seed_to_rand(seeds):
-    random_matrix = np.empty(seeds.shape, dtype=np.float32)
-    for idx in np.ndindex(seeds.shape):
-        np.random.seed(seeds[idx]) 
-        random_matrix[idx] = np.random.rand()
-    return random_matrix
+# @njit
+# def seed_to_rand(seeds):
+#     random_matrix = np.empty(seeds.shape, dtype=np.float32)
+#     for idx in np.ndindex(seeds.shape):
+#         np.random.seed(seeds[idx]) 
+#         random_matrix[idx] = np.random.rand()
+#     return random_matrix
 
 
 def rand(
@@ -72,6 +72,6 @@ def rand(
         random_matrix = seed_to_rand(seeds)
         return torch.from_numpy(random_matrix)
     elif backend == "cxx":
-        return seed_to_rand_cxx(torch.from_numpy(seeds.astype(np.uint64)))
+        return seed_to_rand_cxx(torch.from_numpy(seeds.astype(np.int64)))
     elif backend == "parallel":
-        return seed_to_rand_parallel(torch.from_numpy(seeds.astype(np.uint64)))
+        return seed_to_rand_parallel(torch.from_numpy(seeds.astype(np.int64)))
