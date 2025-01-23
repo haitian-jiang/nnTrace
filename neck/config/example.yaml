@@ -1,22 +1,15 @@
-config: "./config.yaml"
-
 storage:
-  type: "disk"  # disk, etcd
+  log_tensor: True  # if false, logging annotations will be nop.
+  type: "disk"  # disk, (redis)
   disk:
-    log_path_fwd: "/workspace/logging/saved_tensors/activations"
-    log_path_bwd: "/workspace/logging/saved_tensors/gradients"
-    log_path_param: "/workspace/logging/saved_tensors/parameters"
+    log_path_fwd: "~/efs/logging/saved_tensors/activations"
+    log_path_bwd: "~/efs/logging/saved_tensors/gradients"
+    log_path_param: "~/efs/logging/saved_tensors/parameters"
 
 
 parallel:
+  framework: "Megatron-LM"
   type: "TDPECSZ123V"  # Tensor, Data, Pipeline, Expert, Context, Sequence, Zero 1/2/3, virtual_pipeline?
-  world_size: 1
-  tp_size: 1
-  tp_group_size: 1
-  dp_size: 1
-  dp_group_size: 1
-  pp_size: 1
-  pp_group_size: 1
 
 
 naming:
