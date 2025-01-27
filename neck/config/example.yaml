@@ -7,10 +7,17 @@ storage:
     log_path_param: "~/efs/logging/saved_tensors/parameters"
 
 
+architecture:
+  num_layers: 24
+  vocab_size: 50257
+  vocab_size_with_padding: 50304  #50432
+  hidden_size: 1024
+  num_attention_heads: 16
+  seq_length: 1024
+  max_position_embeddings: 1024
+
+
+
 parallel:
   framework: "Megatron-LM"
   type: "TDPECSZ123V"  # Tensor, Data, Pipeline, Expert, Context, Sequence, Zero 1/2/3, virtual_pipeline?
-
-
-naming:
-  foo: "bar"
