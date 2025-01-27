@@ -1,4 +1,3 @@
-import ast
 import torch
 from omegaconf import OmegaConf
 from neck import CONFIG
@@ -56,7 +55,16 @@ def to_canonical_name_param_megatron(
             local_layer_id = int(part)
             break
     if layer_id_index is None:
-        return name # embedding layer, lm head, etc. 
+        # position_embeddings, word_embeddings, output_layer, etc. 
+        if name.endswith("output_layer.weight") and \
+            CONFIG.architecture.share_embeddings_and_output_weights:
+            # *.output_layer.weight -> *embedding.word_embeddings.weight
+            # output_layer and word_embeddings will not coexist
+            # in the same process if share_embeddings_and_output_weights,
+            # so there will not be key collision.
+            name_decomp[-2] = "embedding.word_embeddings"
+            return ".".join(name_decomp)
+        return name 
     
     if vp_rank is None:
         vp_rank, vp_size = 0, 1

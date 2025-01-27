@@ -1,3 +1,11 @@
+
+def get_output_layer_canonical_name() -> str:
+    if CONFIG.architecture.share_embeddings_and_output_weights:
+        return "word_embeddings.weight"
+    else:
+        return "output_layer.weight"
+
+
 TP_SIZE_MAPPING = {
     "word_embeddings.weight": {
         "full": "(vocab_size_with_padding, hidden_size)",
@@ -104,5 +112,11 @@ TP_SIZE_MAPPING = {
         "full": "(hidden_size,)",
         "slice": "(hidden_size,)",
         "dim": None,
+    },
+
+    "output_layer.weight": {
+        "full": "(vocab_size_with_padding, hidden_size)",
+        "slice": "(vocab_size_with_padding // tp_size, hidden_size)",
+        "dim": 0,
     },
 }
