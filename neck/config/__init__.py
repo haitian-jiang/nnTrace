@@ -21,3 +21,5 @@ def load_config():
 
 
 CONFIG = load_config()
+
+__all__ = ["CONFIG"]
