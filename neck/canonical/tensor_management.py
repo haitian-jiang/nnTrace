@@ -25,9 +25,11 @@ def _cleanup_callback(tensor_id):
     Remove the tensor and finalizer from the registry to release memory.
     """
     canonical_name = REG_PARAM[tensor_id].canonical_name
-    del REG_PARAM[canonical_name]
-    del REG_PARAM[tensor_id]
-    del _finalizers[tensor_id]
+    # May have double del when deleting "word_embeddings" and "output_layer", 
+    # use pop to avoid KeyError
+    REG_PARAM.pop(canonical_name, None)
+    REG_PARAM.pop(tensor_id, None)
+    _finalizers.pop(tensor_id, None)
 
 
 def register_tensor( 

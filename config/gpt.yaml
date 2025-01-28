@@ -22,3 +22,9 @@ architecture:
 parallel:
   framework: "Megatron-LM"
   type: "TDPECSZ123V"  # Tensor, Data, Pipeline, Expert, Context, Sequence, Zero 1/2/3, virtual_pipeline?
+
+
+logging_point:
+  forward: 
+    embedding: full
+    

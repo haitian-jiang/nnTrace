@@ -19,8 +19,9 @@ def reinit_model(
     assert isinstance(model, nn.Module), "model must be a torch.nn.Module"
     canonical.get_parallel_states()  
     if CONFIG.parallel.size.vp_size is None:
-        assert vp_rank is None, \
-            "vp_rank must be None if virtual pipeline is not used"
+        assert vp_rank is None or vp_rank ==0, \
+            "vp_rank must be None or 0 if virtual pipeline is not used"
+        vp_rank = None  # for compatibility with downstream code
     else:
         assert vp_rank is not None, \
             "vp_rank must be provided if virtual pipeline is used"

@@ -2,7 +2,7 @@
 
 # You can change the content in it to direct to your own config file.
 # There will not be any args received by NECK, so reading file is the way to pass args.
-# If this file is a relative path, it will be relative to neck/config.
+# If this file is a relative path, it will be relative to NECK/config.
 # Absolute path is recommended.
 
-config_path: "./example.yaml"
+config_path: "./gpt.yaml"
