@@ -37,7 +37,7 @@ def reinit_model(
     prefix = canonical.get_prefix(set(("TP", "PP", "VP")), vp_rank)
     for name, param in model.named_parameters():
         local_name = f"{prefix}{name}"
-        canonical_name = canonical.to_canonical_name_param(name, vp_rank)
+        canonical_name = canonical.to_canonical_param_mod(name, vp_rank)
         full_shape, tp_slice = canonical.get_tp_slice(name, param)
         tensor_info = TensorInfo(
             tensor_id=id(param),

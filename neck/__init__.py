@@ -2,9 +2,11 @@
 from .config import CONFIG
 from .canonical import TensorInfo
 
-from .api import (
+from .interface import (
     reinit_model,
 )
+from . import interface
+from . import config
 from . import random
 from . import canonical
 from . import logger
@@ -12,6 +14,8 @@ from . import logger
 
 __all__ = [
     "CONFIG",
+    "config",
+    "interface",
     "TensorInfo",
     "reinit_model",
     "random",
