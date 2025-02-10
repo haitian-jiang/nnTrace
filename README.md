@@ -9,3 +9,10 @@ Installation:
 ```bash
 pip install -e .
 ```
+
+Dependency:
+
+```bash
+pip install loguru
+pip install xxhash
+```

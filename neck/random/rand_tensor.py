@@ -41,7 +41,7 @@ def rand(
         name: str, 
         shape: tuple, 
         slices: Optional[Tuple[slice, ...]] = None,
-        backend: str = "cxx",  # Testing
+        backend: str = "cxx",
     ) -> torch.Tensor:
     """Generate a random tensor based on a unique name and shape.
 

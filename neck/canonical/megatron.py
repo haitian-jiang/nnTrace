@@ -1,9 +1,7 @@
 import torch
-from typing import Tuple, Optional, TYPE_CHECKING
-if TYPE_CHECKING:
-    from neck.interface import TensorAnnotation
+from typing import Tuple, Optional
 from omegaconf import OmegaConf
-from neck import CONFIG
+from neck import CONFIG, TensorAnnotation
 
 
 def get_megatron_lm_parallel_rank() -> OmegaConf:
@@ -88,7 +86,7 @@ def to_canonical_param_mod_megatron(
 
 def infer_tp_slice_megatron(
         runtime_shape: Tuple[int, ...],
-        annotation: Optional["TensorAnnotation"] = None,
+        annotation: Optional[TensorAnnotation] = None,
     ) -> Tuple[Tuple[int, ...], Tuple[slice, ...]]:
 
     if annotation is None:

@@ -1,8 +1,10 @@
-# This two must be imported before the modules, otherwise circular import will occur.
+# Import individuals then import modules, otherwise circular import error.
 from .config import CONFIG
 from .logger import TensorInfo
 
 from .interface import (
+    TensorAnnotation,
+    ModuleAnnotation,
     reinit_model,
 )
 from . import interface
@@ -13,11 +15,17 @@ from . import logger
 
 
 __all__ = [
+    # ------ classes ------
+    "TensorInfo",
+    "TensorAnnotation",
+    "ModuleAnnotation",
+    # ------ variables ------
     "CONFIG",
+    # ------ functions ------
+    "reinit_model",
+    # ------ modules ------
     "config",
     "interface",
-    "TensorInfo",
-    "reinit_model",
     "random",
     "canonical",
     "logger",

@@ -14,13 +14,24 @@ inline float fill_random(int64_t seed) {
         double d;
     } tmp;
 
-    uint64_t z = static_cast<uint64_t>(seed); // For compatability with torch<=2.1.0
+    uint64_t z = static_cast<uint64_t>(seed); // Compatabile with torch<=2.1.0
     z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9;
     z = (z ^ (z >> 27)) * 0x94d049bb133111eb;
     z = z ^ (z >> 31);
+
+    /* (z / UINT64_MAX) using bit manipulation
+    * See https://github.com/NetSys/bess/blob/master/core/utils/random.h#L75
+    * From the MSB,
+    * 0: sign
+    * 1-11: exponent (0x3ff == 0, 0x400 == 1)
+    * 12-63: mantissa
+    * The resulting double number is 1.(b0)(b1)...(b47),
+    * where seed_ is (b0)(b1)...(b63).
+    */
     tmp.i = (z >> 12) | 0x3ff0000000000000ul;
     return static_cast<float>(2.0 - tmp.d);
 }
+
 
 torch::Tensor seed_to_rand(const torch::Tensor &seeds) {
     // assert(seeds.dtype() == torch::kUInt64);

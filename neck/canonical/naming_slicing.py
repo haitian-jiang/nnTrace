@@ -1,8 +1,5 @@
-import torch
-from typing import Tuple, Optional, TYPE_CHECKING
-if TYPE_CHECKING:
-    from neck.interface import TensorAnnotation
-from neck import CONFIG
+from typing import Tuple, Optional
+from neck import CONFIG, TensorAnnotation
 from .megatron import to_canonical_param_mod_megatron, infer_tp_slice_megatron
 
 
@@ -27,7 +24,7 @@ def to_canonical_param_mod(
 
 def infer_tp_slice(
         runtime_shape: Tuple[int, ...],
-        annotation: Optional["TensorAnnotation"] = None,
+        annotation: Optional[TensorAnnotation] = None,
     ) -> Tuple[Tuple[int, ...], Tuple[slice, ...]]:
     """
     Infer the full shape and slice for a tensor given its runtime shape and 

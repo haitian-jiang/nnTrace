@@ -5,6 +5,7 @@ import datetime
 from dataclasses import dataclass
 from collections import defaultdict
 from typing import Tuple, Literal
+from loguru import logger as clog
 from neck import CONFIG
 from neck.canonical import get_parallel_states
 
@@ -15,7 +16,6 @@ class TensorInfo:
     canonical_name: str
     full_shape: Tuple[int, ...]
     shard_slice: Tuple[slice, ...]
-    # device: torch.device
     local_name: str = ""  # don't know what to do with it...
 
 
@@ -71,7 +71,7 @@ def save_logs(
         save_file = p / f"{rank}.pt"
     torch.save(LOGS[t_type], save_file)
 
-    print(f"[Rank {rank}] 📝 Logged {t_type} tensors saved to {save_file}")
+    clog.debug(f"[Rank {rank}] 📝 Logged {t_type} tensors saved to {save_file}")
 
 
 def _exit_hook():
@@ -80,12 +80,12 @@ def _exit_hook():
         date = datetime.datetime.now().strftime("%y-%m-%d-%H-%M")
         if not CONFIG.logging.enable_logging:
             if rank == 0:
-                print("⛔️ Logging is disabled.")
+                clog.debug("⛔️ Logging is disabled.")
         else:
             for t_type in T_TYPE:
                 save_logs(t_type, date)
     except AssertionError:
-        print("[Developing mode]: Bye!")
+        clog.debug("[Developing mode]: Bye!")
 
 
 if CONFIG.logging.enable_logging:

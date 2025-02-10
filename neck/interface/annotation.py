@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Type, Union, Dict
+from typing import Optional, Dict, Literal
 from omegaconf import OmegaConf
 from neck import CONFIG
 
@@ -112,7 +112,7 @@ module_annotations = _parse_module_annotation()
 
 def get_annotation(
         local_name: str,
-        type: str,
+        type: Literal["param", "module"],
     ) -> Optional[TensorAnnotation | ModuleAnnotation]:
     """Get the annotation given a module or parameter's local name.
 

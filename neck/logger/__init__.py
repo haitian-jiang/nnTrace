@@ -1,5 +1,8 @@
-from .logger import log_tensor
+from .logger import TensorInfo, log_tensor
+from .hook import register_hook
 
 __all__ = [
-    "log_tensor"
+    "TensorInfo",
+    "log_tensor",
+    "register_hook",
 ]
