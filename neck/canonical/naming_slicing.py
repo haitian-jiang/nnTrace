@@ -1,25 +1,41 @@
 import torch
+from typing import Tuple, Optional, TYPE_CHECKING
+if TYPE_CHECKING:
+    from neck.interface import TensorAnnotation
 from neck import CONFIG
-from typing import Tuple, Optional
-from .megatron import to_canonical_name_param_megatron, get_tp_slice_megatron
+from .megatron import to_canonical_param_mod_megatron, infer_tp_slice_megatron
 
 
-def to_canonical_name_param(name: str, vp_rank: Optional[int] = None) -> str:
-    """Convert a weight name to a canonical name."""
+def to_canonical_param_mod(
+        local_name: str, 
+        vp_rank: Optional[int] = None
+    ) -> str:
+    """
+    Convert a weight name or a module name to a canonical name.
+    Example of a weight name: 
+        module.module.decoder.layers.0.self_attention.linear_qkv.weight
+    Example of a module name:
+        module.module.decoder.layers.0.self_attention
+    """
     if CONFIG.parallel.framework == "Megatron-LM":
-        return to_canonical_name_param_megatron(name, vp_rank)
+        return to_canonical_param_mod_megatron(local_name, vp_rank)
     else:
         raise NotImplementedError(
             f"Parallel framework {CONFIG.parallel.framework} is not supported."
         )
 
 
-def get_tp_slice(
-        name: str, 
-        parameter: torch.Tensor = None
+def infer_tp_slice(
+        runtime_shape: Tuple[int, ...],
+        annotation: Optional["TensorAnnotation"] = None,
     ) -> Tuple[Tuple[int, ...], Tuple[slice, ...]]:
+    """
+    Infer the full shape and slice for a tensor given its runtime shape and 
+    annotation information.  If the annotation is None, then the runtime shape
+    is the full shape and the slice.
+    """
     if CONFIG.parallel.framework == "Megatron-LM":
-        return get_tp_slice_megatron(name, parameter)
+        return infer_tp_slice_megatron(runtime_shape, annotation)
     else:
         raise NotImplementedError(
             f"Parallel framework {CONFIG.parallel.framework} is not supported."

@@ -1,16 +1,19 @@
-storage:
-  log_tensor: True  # if false, logging annotations will be nop.
+logging:
+  enable_logging: True  # if false, logging annotations will be nop.
   type: "disk"  # disk, (redis)
   disk:
-    log_path_fwd: "~/efs/logging/saved_tensors/activations"
-    log_path_bwd: "~/efs/logging/saved_tensors/gradients"
-    log_path_param: "~/efs/logging/saved_tensors/parameters"
+    log_path_fwd: "/home/ubuntu/efs/logging/saved_tensors/activations"
+    log_path_bwd: "/home/ubuntu/efs/logging/saved_tensors/gradients"
+    log_path_param: "/home/ubuntu/efs/logging/saved_tensors/parameters"
 
+annotations:
+  param: "./gpt-param.yaml"
+  module: "./gpt-module.yaml"
 
 architecture:
   num_layers: 24
   vocab_size: 50257
-  vocab_size_with_padding: 50304  #50432
+  vocab_size_with_padding: 50304  # 50304, 50432
   hidden_size: 1024
   num_attention_heads: 16
   seq_length: 1024
@@ -22,9 +25,3 @@ architecture:
 parallel:
   framework: "Megatron-LM"
   type: "TDPECSZ123V"  # Tensor, Data, Pipeline, Expert, Context, Sequence, Zero 1/2/3, virtual_pipeline?
-
-
-logging_point:
-  forward: 
-    embedding: full
-    
