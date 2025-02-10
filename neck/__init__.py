@@ -1,6 +1,6 @@
 # This two must be imported before the modules, otherwise circular import will occur.
 from .config import CONFIG
-from .canonical import TensorInfo
+from .logger import TensorInfo
 
 from .interface import (
     reinit_model,

@@ -2,50 +2,63 @@ import atexit
 import torch
 import pathlib
 import datetime
+from dataclasses import dataclass
 from collections import defaultdict
-from typing import Dict, Optional
+from typing import Tuple, Literal
 from neck import CONFIG
 from neck.canonical import get_parallel_states
 
 
+@dataclass
+class TensorInfo:
+    tensor: torch.Tensor  # CPU tensor, not the original tensor
+    canonical_name: str
+    full_shape: Tuple[int, ...]
+    shard_slice: Tuple[slice, ...]
+    # device: torch.device
+    local_name: str = ""  # don't know what to do with it...
+
+
 LOGS = defaultdict(dict)
-T_TYPE = ("fwd_activ", "bwd_activ", "bwd_param", "param")
-LOGS["fwd_activ"] = {"haha": torch.tensor(1)}
+T_TYPE = ("activ", "g_activ", "g_param", "param")
 
 
 def log_tensor(
-        name: str, 
-        t_type: str,
-        tensor: Optional[torch.Tensor], 
-        info: Optional[Dict] = None, # TODO: type
+        canonical_name: str, 
+        t_type: Literal["activ", "g_activ", "g_param", "param"],
+        tensor_info: TensorInfo,
     ) -> None:
     """
     Log the tensor to the destination.
     """
-    if not CONFIG.logging.enable_logging or tensor is None:
+    if not CONFIG.logging.enable_logging:
         return
     assert t_type in T_TYPE, f"Invalid tensor type {t_type}"
     destination = LOGS[t_type]
-    assert name not in destination, f"{name} already exists in the logger"
-    # TODO: TensorInfo for params.
-    # TODO: Module info for activations.
-    destination[name] = tensor.to('cpu')
+    assert canonical_name not in destination, \
+        f"{canonical_name} already exists in the logger"
+    assert tensor_info.tensor.device.type == "cpu", \
+        "Tensors need to be moved to CPU before being logged"
+    destination[canonical_name] = tensor_info
 
 
-def save_logs(t_type: str, date: str):
+def save_logs(
+        t_type: str, 
+        date: str
+    ) -> None:
     assert t_type in T_TYPE, f"Invalid tensor type {t_type}"
 
     paths = CONFIG.logging.disk
     match t_type:
-        case "fwd_activ":
-            directory = paths.log_path_fwd
-        case "bwd_activ":
-            directory = paths.log_path_bwd
-        case "bwd_param":
-            directory = paths.log_path_bwd
+        case "activ":
+            dir = paths.log_path_fwd
+        case "g_activ":
+            dir = paths.log_path_bwd
+        case "g_param":
+            dir = paths.log_path_bwd
         case "param":
-            directory = paths.log_path_param
-    directory = pathlib.Path(directory)
+            dir = paths.log_path_param
+    directory = pathlib.Path(dir)
     directory.mkdir(parents=True, exist_ok=True)
 
     world_size = get_parallel_states().size.world_size

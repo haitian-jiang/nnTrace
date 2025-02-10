@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import neck.canonical as canonical
 import neck.random
-from neck.canonical import REG_PARAM
+from neck.logger import log_tensor
 from neck import CONFIG, TensorInfo
 from typing import Optional
 from .annotation import get_annotation
@@ -10,7 +10,8 @@ from .annotation import get_annotation
 
 def reinit_model(
         model: torch.nn.Module, 
-        vp_rank: Optional[int] = None
+        vp_rank: Optional[int] = None,
+        log_params: bool = True,
     ) -> None:
     """
     Reinitialize the model parameter tensors to be consistent.  
@@ -43,16 +44,18 @@ def reinit_model(
         assert annotation is not None, \
             f"Annotation not found for {local_name}"
         full_shape, tp_slice = canonical.infer_tp_slice(param.shape, annotation)
-        tensor_info = TensorInfo(
-            tensor_id=id(param),
-            canonical_name=canonical_name,
-            full_shape=full_shape,
-            shard_slice=tp_slice,
-            dtype=param.dtype,
-            local_name=local_name
-        )
-        canonical.register_tensor(param, tensor_info, REG_PARAM)
 
         # reinitialize the parameter
         new_param = neck.random.rand(canonical_name, full_shape, tp_slice)
-        param.data = new_param.data.to(param.dtype).to(param.device)
+        new_param = new_param.to(param.dtype)
+        param.data = new_param.data.to(param.device)
+
+        if log_params:
+            tensor_info = TensorInfo(
+                tensor=new_param,
+                canonical_name=canonical_name,
+                full_shape=full_shape,
+                shard_slice=tp_slice,
+                local_name=local_name
+            )
+            log_tensor(canonical_name, "param", tensor_info)

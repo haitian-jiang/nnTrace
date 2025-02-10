@@ -4,7 +4,6 @@ if TYPE_CHECKING:
     from neck.interface import TensorAnnotation
 from omegaconf import OmegaConf
 from neck import CONFIG
-from .megatron_tp_size_mapping import TP_SIZE_MAPPING
 
 
 def get_megatron_lm_parallel_rank() -> OmegaConf:
