@@ -5,6 +5,7 @@ import neck.random
 from neck.canonical import REG_PARAM
 from neck import CONFIG, TensorInfo
 from typing import Optional
+from .annotation import get_annotation
 
 
 def reinit_model(
@@ -38,7 +39,10 @@ def reinit_model(
     for name, param in model.named_parameters():
         local_name = f"{prefix}{name}"
         canonical_name = canonical.to_canonical_param_mod(name, vp_rank)
-        full_shape, tp_slice = canonical.get_tp_slice(name, param)
+        annotation = get_annotation(local_name, "param")
+        assert annotation is not None, \
+            f"Annotation not found for {local_name}"
+        full_shape, tp_slice = canonical.infer_tp_slice(param.shape, annotation)
         tensor_info = TensorInfo(
             tensor_id=id(param),
             canonical_name=canonical_name,

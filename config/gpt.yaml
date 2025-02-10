@@ -2,9 +2,9 @@ logging:
   enable_logging: True  # if false, logging annotations will be nop.
   type: "disk"  # disk, (redis)
   disk:
-    log_path_fwd: "~/efs/logging/saved_tensors/activations"
-    log_path_bwd: "~/efs/logging/saved_tensors/gradients"
-    log_path_param: "~/efs/logging/saved_tensors/parameters"
+    log_path_fwd: "/home/ubuntu/efs/logging/saved_tensors/activations"
+    log_path_bwd: "/home/ubuntu/efs/logging/saved_tensors/gradients"
+    log_path_param: "/home/ubuntu/efs/logging/saved_tensors/parameters"
 
 annotations:
   param: "./gpt-param.yaml"

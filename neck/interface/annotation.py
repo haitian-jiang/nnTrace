@@ -18,7 +18,8 @@ class TensorAnnotation:
                 of "module.module.decoder.layers.0.mlp.linear_fc1.weight" is
                 "linear_fc1.weight".  Cannot be `None` for parameters, but can 
                 be `None` for activations.
-        tp_dim: The dimension of the tensor that is sharded.
+        tp_dim: The dimension of the tensor that is sharded. If `None`, the
+                tensor is not sharded.
         full: The full shape of the tensor before sharding.
         slice: The slice shape of the tensor after sharding.
 
@@ -109,9 +110,49 @@ param_annotations = _parse_param_annotation()
 module_annotations = _parse_module_annotation()
 
 
+def get_annotation(
+        local_name: str,
+        type: str,
+    ) -> Optional[TensorAnnotation | ModuleAnnotation]:
+    """Get the annotation given a module or parameter's local name.
+
+    Args:
+        local_name: The name of the module or parameter from named_x().
+        type: The type of the annotation, either "param" or "module".
+
+    Returns:
+        The annotation for the module or parameter, or `None` if not found.
+    """
+
+    if type == "param":
+        annotations = param_annotations
+    elif type == "module":
+        annotations = module_annotations
+    else:
+        raise ValueError(f"Annotation type {type} is not supported.")
+    
+    # fast path for Megatron-LM parameters
+    if type == "param" and CONFIG.parallel.framework == "Megatron-LM":
+        # local_name: module.module.decoder.layers.23.self_attention.linear_qkv.weight
+        suffix = '.'.join(local_name.split(".")[-2:])  # suffix: linear_qkv.weight
+        return annotations.get(suffix, None)
+    else:
+        name_decomp = local_name.split(".")
+        for i, part in enumerate(name_decomp):
+            if part.isdigit():
+                name_decomp[i] = r"\d"
+                break
+        general_name = ".".join(name_decomp)  # module.module.decoder.layers.\d.self_attention
+        for suffix in annotations:
+            if general_name.endswith(suffix):
+                return annotations[suffix]
+    return None
+
+
 __all__ = [
     "TensorAnnotation",
     "ModuleAnnotation",
     "param_annotations",
     "module_annotations"
+    "get_annotation"
 ]

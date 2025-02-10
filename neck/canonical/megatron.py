@@ -1,7 +1,9 @@
 import torch
+from typing import Tuple, Optional, TYPE_CHECKING
+if TYPE_CHECKING:
+    from neck.interface import TensorAnnotation
 from omegaconf import OmegaConf
 from neck import CONFIG
-from typing import Tuple, Optional
 from .megatron_tp_size_mapping import TP_SIZE_MAPPING
 
 
@@ -28,8 +30,8 @@ def get_megatron_lm_parallel_rank() -> OmegaConf:
     return CONFIG.parallel
 
 
-def to_canonical_name_param_megatron(
-        name: str, 
+def to_canonical_param_mod_megatron(
+        local_name: str, 
         vp_rank: Optional[int] = None
     ) -> str:
     """
@@ -47,7 +49,7 @@ def to_canonical_name_param_megatron(
     stg3      (6,7)/3    (14,15)/7    (22,23)/11
     """
 
-    name_decomp = name.split(".")
+    name_decomp = local_name.split(".")
     layer_id_index, local_layer_id = None, None
     for i, part in enumerate(name_decomp):
         if part.isdigit():
@@ -56,7 +58,7 @@ def to_canonical_name_param_megatron(
             break
     if layer_id_index is None:
         # position_embeddings, word_embeddings, output_layer, etc. 
-        if name.endswith("output_layer.weight") and \
+        if local_name.endswith("output_layer.weight") and \
             CONFIG.architecture.share_embeddings_and_output_weights:
             # *.output_layer.weight -> *embedding.word_embeddings.weight
             # output_layer and word_embeddings will not coexist
@@ -64,7 +66,7 @@ def to_canonical_name_param_megatron(
             # so there will not be key collision.
             name_decomp[-2] = "embedding.word_embeddings"
             return ".".join(name_decomp)
-        return name 
+        return local_name 
     
     if vp_rank is None:
         vp_rank, vp_size = 0, 1
@@ -83,43 +85,49 @@ def to_canonical_name_param_megatron(
 
     name_decomp[layer_id_index] = str(global_layer_id)
     return ".".join(name_decomp)
-    
 
-def get_tp_slice_megatron(
-        name: str, 
-        parameter: torch.Tensor = None
+
+def infer_tp_slice_megatron(
+        runtime_shape: Tuple[int, ...],
+        annotation: Optional["TensorAnnotation"] = None,
     ) -> Tuple[Tuple[int, ...], Tuple[slice, ...]]:
-    
-    # name: module.module.decoder.layers.23.self_attention.linear_qkv.weight
-    suffix = '.'.join(name.split(".")[-2:])  # suffix: linear_qkv.weight
-    
-    # according to the literal in mapping file, for eval
-    tp_size = CONFIG.parallel.size.tp_size
-    hidden_size = CONFIG.architecture.hidden_size
-    vocab_size_with_padding = CONFIG.architecture.vocab_size_with_padding
-    seq_length = CONFIG.architecture.seq_length
-    _allowed_locals = {"tp_size": tp_size, "hidden_size": hidden_size,
-                       "vocab_size_with_padding": vocab_size_with_padding,
-                       "seq_length": seq_length}
 
+    if annotation is None:
+        return runtime_shape, tuple(slice(0, dim) for dim in runtime_shape)
+    
+    tp_dim = annotation.tp_dim  # None if not sharded, otherwise int
+    tp_size = CONFIG.parallel.size.tp_size
     tp_rank = CONFIG.parallel.rank.tp_rank
 
-    shapes = TP_SIZE_MAPPING[suffix]
-    full_shape = eval(shapes["full"], {}, _allowed_locals)
-    slice_shape = eval(shapes["slice"], {}, _allowed_locals)
-    shard_dim = shapes["dim"]
+    # calculate the full shape
+    full_shape = list(runtime_shape)
+    if tp_dim is not None:
+        full_shape[tp_dim] *= tp_size
+    full_shape = tuple(full_shape)
 
-    assert tuple(parameter.shape) == slice_shape, \
-        f"Shape mismatch for {name}: {parameter.shape} vs {slice_shape}"
+    # calculate the slice
+    slices = [slice(0, dim) for dim in runtime_shape]
+    if tp_dim is not None:
+        slices[tp_dim] = slice(runtime_shape[tp_dim] * tp_rank, 
+                            runtime_shape[tp_dim] * (tp_rank + 1))
 
-    # not sharded
-    if shard_dim is None:
-        assert full_shape == slice_shape
-        return full_shape, tuple(slice(0, dim) for dim in full_shape)
-
-    assert full_shape[shard_dim] // tp_size == slice_shape[shard_dim]
-    slices = [slice(0, dim) for dim in full_shape]
-    slices[shard_dim] = slice(slice_shape[shard_dim] * tp_rank, 
-                              slice_shape[shard_dim] * (tp_rank + 1))
+    # checking, if full_shape and slices are proveded in annotation
+    if annotation.full is not None or annotation.slice is not None:
+        hidden_size = CONFIG.architecture.hidden_size
+        vocab_size_with_padding = CONFIG.architecture.vocab_size_with_padding
+        seq_length = CONFIG.architecture.seq_length
+        _allowed_locals = {"tp_size": tp_size, "hidden_size": hidden_size,
+                        "vocab_size_with_padding": vocab_size_with_padding,
+                        "seq_length": seq_length}
     
+    if annotation.full is not None:
+        annotation_full_shape = eval(annotation.full, {}, _allowed_locals)
+        assert full_shape == annotation_full_shape, \
+            f"Full shape mismatch: {full_shape} vs {annotation_full_shape}"
+        
+    if annotation.slice is not None:
+        annotation_slice_shape = eval(annotation.slice, {}, _allowed_locals)
+        assert runtime_shape == annotation_slice_shape, \
+            f"Slice mismatch: {slices} vs {annotation_slice_shape}"
+        
     return full_shape, tuple(slices)
