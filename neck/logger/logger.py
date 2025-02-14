@@ -1,10 +1,11 @@
 import atexit
 import torch
-import pathlib
 import datetime
+from pathlib import Path
 from dataclasses import dataclass
 from collections import defaultdict
 from typing import Tuple, Literal
+from omegaconf import OmegaConf
 from loguru import logger as clog
 from neck import CONFIG
 from neck.canonical import get_parallel_states
@@ -35,6 +36,8 @@ def log_tensor(
         return
     assert t_type in T_TYPE, f"Invalid tensor type {t_type}"
     destination = LOGS[t_type]
+    if canonical_name in destination:  # TODO: tentative for no data canonicalization
+        return
     assert canonical_name not in destination, \
         f"{canonical_name} already exists in the logger"
     assert tensor_info.tensor.device.type == "cpu", \
@@ -44,31 +47,19 @@ def log_tensor(
 
 def save_logs(
         t_type: str, 
-        date: str
+        run_dir: Path
     ) -> None:
     assert t_type in T_TYPE, f"Invalid tensor type {t_type}"
-
-    paths = CONFIG.logging.disk
-    match t_type:
-        case "activ":
-            dir = paths.log_path_fwd
-        case "g_activ":
-            dir = paths.log_path_bwd
-        case "g_param":
-            dir = paths.log_path_bwd
-        case "param":
-            dir = paths.log_path_param
-    directory = pathlib.Path(dir)
-    directory.mkdir(parents=True, exist_ok=True)
+    OmegaConf.save(CONFIG, run_dir / "config.yaml")
 
     world_size = get_parallel_states().size.world_size
     rank = get_parallel_states().rank.world_rank
     if world_size == 1:
-        save_file = directory / f"{date}-single.pt"
+        save_file = run_dir / f"{t_type}.pt"
     else:
-        p = directory / date
+        p = run_dir / t_type
         p.mkdir(parents=True, exist_ok=True)
-        save_file = p / f"{rank}.pt"
+        save_file = p / f"rank{rank}.pt"
     torch.save(LOGS[t_type], save_file)
 
     clog.debug(f"[Rank {rank}] 📝 Logged {t_type} tensors saved to {save_file}")
@@ -77,14 +68,20 @@ def save_logs(
 def _exit_hook():
     try:
         rank = get_parallel_states().rank.world_rank
-        date = datetime.datetime.now().strftime("%y-%m-%d-%H-%M")
         if not CONFIG.logging.enable_logging:
             if rank == 0:
                 clog.debug("⛔️ Logging is disabled.")
-        else:
-            for t_type in T_TYPE:
-                save_logs(t_type, date)
+                return
+        world_size = get_parallel_states().size.world_size
+        if run_name:=CONFIG.logging.disk.get("run_name", None) is None:
+            run_name = datetime.datetime.now().strftime("%y-%m-%d-%H-%M")
+        suffix = "single" if world_size == 1 else "distr"
+        run_dir = Path(CONFIG.logging.disk.log_path) / f"{run_name}-{suffix}"
+        run_dir.mkdir(parents=True, exist_ok=True)
+        for t_type in T_TYPE:
+            save_logs(t_type, run_dir)
     except AssertionError:
+        # in get_parallel_states, torch.distributed is not initialized
         clog.debug("[Developing mode]: Bye!")
 
 

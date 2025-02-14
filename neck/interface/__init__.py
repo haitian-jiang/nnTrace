@@ -5,7 +5,7 @@ from .annotation import (
     module_annotations,
     get_annotation,
 )
-from .reinit_model import reinit_model
+from .reinit_model import reinit_model, register_model_hooks
 
 
 __all__ = [
@@ -15,4 +15,5 @@ __all__ = [
     "module_annotations",
     "get_annotation",
     "reinit_model",
+    "register_model_hooks",
 ]

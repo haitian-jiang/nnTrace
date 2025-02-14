@@ -1,3 +1,4 @@
+import math
 import torch
 import torch.nn as nn
 import neck.canonical as canonical
@@ -35,6 +36,7 @@ def reinit_model(
         model: torch.nn.Module, 
         vp_rank: Optional[int] = None,
         log_params: bool = True,
+        initialization: str = "kaiming_uniform",
     ) -> None:
     """
     Reinitialize the model parameter tensors to be consistent.  
@@ -60,6 +62,9 @@ def reinit_model(
 
         # reinitialize the parameter
         new_param = neck.random.rand(canon_param_name, full_shape, tp_slice)
+        # respect the original range
+        if initialization == "kaiming_uniform":
+            new_param = (2 * new_param - 1) / math.sqrt(full_shape[-1])
         new_param = new_param.to(param.dtype)
         param.data = new_param.data.to(param.device)
 
@@ -72,3 +77,23 @@ def reinit_model(
                 local_name=local_name
             )
             log_tensor(canon_param_name, "param", tensor_info)
+
+
+def register_model_hooks(
+        model: torch.nn.Module,
+        vp_rank: Optional[int] = None,
+
+    ):
+    """
+    Register hooks to log activations / grads during forward / backward pass.
+    """
+    vp_rank = _check_vp_rank(model, vp_rank)
+    
+    for m_name, module in model.named_modules():
+        m_annotation = get_annotation(m_name, "module")
+        if m_annotation is None:
+            continue
+        canon_mod_name = canonical.to_canonical_param_mod(m_name, vp_rank)
+        rank = CONFIG.parallel.rank.world_rank
+        clog.debug(f"[Rank {rank}] Registering hooks for {canon_mod_name}")
+        register_hook(module, canon_mod_name, m_annotation)

@@ -27,7 +27,7 @@ self_attention.core_attention.output:
     tp_dim: -1
 
 self_attention.linear_proj.output:
-  output: 
+  output:
     tp_dim: null
   output_idx: 0
 
@@ -41,12 +41,14 @@ pre_mlp_layernorm:
 mlp.linear_fc1:
   output: 
     tp_dim: -1
+  output_idx: 0
 
 mlp.linear_fc2:
   input:
     tp_dim: -1
   output:
     tp_dim: null
+  output_idx: 0
 
 layers.\d:
   output:

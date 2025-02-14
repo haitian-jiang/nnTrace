@@ -33,7 +33,7 @@ inline float fill_random(int64_t seed) {
 }
 
 
-torch::Tensor seed_to_rand(const torch::Tensor &seeds) {
+torch::Tensor seed_to_rand_omp(const torch::Tensor &seeds) {
     // assert(seeds.dtype() == torch::kUInt64);
     assert(seeds.is_contiguous());
 
@@ -43,7 +43,7 @@ torch::Tensor seed_to_rand(const torch::Tensor &seeds) {
     const int64_t* seed_data = seeds.const_data_ptr<int64_t>();
     float* rand_data = rand_tensor.data_ptr<float>();
 
-    #pragma omp parallel for
+    #pragma omp parallel for simd
     for (int64_t i = 0; i < numel; ++i) {
         rand_data[i] = fill_random(seed_data[i]);
     }
@@ -52,7 +52,7 @@ torch::Tensor seed_to_rand(const torch::Tensor &seeds) {
 
 
 torch::Tensor seed_to_rand_parallel(const torch::Tensor &seeds) {
-    // assert(seeds.dtype() == torch::kUInt64);
+    assert(seeds.dtype() == torch::kInt64);
     assert(seeds.is_contiguous());
 
     torch::TensorOptions opt = torch::TensorOptions().dtype(torch::kFloat32);
@@ -61,7 +61,13 @@ torch::Tensor seed_to_rand_parallel(const torch::Tensor &seeds) {
     const int64_t* seed_data = seeds.const_data_ptr<int64_t>();
     float* rand_data = rand_tensor.data_ptr<float>();
 
-    std::transform(std::execution::par_unseq, seed_data, seed_data + numel, rand_data, fill_random);
+    std::transform(
+        std::execution::par_unseq, 
+        seed_data, 
+        seed_data + numel, 
+        rand_data, 
+        fill_random
+    );
 
     return rand_tensor;
 }
