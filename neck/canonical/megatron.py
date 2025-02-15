@@ -31,7 +31,7 @@ def get_megatron_lm_parallel_rank() -> OmegaConf:
 
 def to_canonical_param_mod_megatron(
         local_name: str, 
-        vp_rank: Optional[int] = None
+        vp_rank: int,
     ) -> str:
     """
     Convert a parameter name to canonical form, 
@@ -47,7 +47,8 @@ def to_canonical_param_mod_megatron(
     stg2      (4,5)/2    (12;13)/6    (20,21)/10
     stg3      (6,7)/3    (14,15)/7    (22,23)/11
     """
-
+    assert vp_rank >= 0, "vp_rank wrong."
+    
     name_decomp = local_name.split(".")
     layer_id_index, local_layer_id = None, None
     for i, part in enumerate(name_decomp):
@@ -67,10 +68,9 @@ def to_canonical_param_mod_megatron(
             return ".".join(name_decomp)
         return local_name 
     
-    if vp_rank is None:
-        vp_rank, vp_size = 0, 1
-    else:
-        vp_size = CONFIG.parallel.size.vp_size
+    vp_size = CONFIG.parallel.size.vp_size
+    if vp_size is None:
+        vp_size = 1
     
     pp_size = CONFIG.parallel.size.pp_size
     pp_rank = CONFIG.parallel.rank.pp_rank

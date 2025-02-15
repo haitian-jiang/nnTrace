@@ -32,11 +32,10 @@ def get_parallel_states() -> OmegaConf:
 
 
 def get_prefix(
-        parallel_dim: set = None, 
-        vp_rank: Optional[int] = None
+        parallel_dim: set[str], 
+        vp_rank: int,
     ) -> str:
-    if parallel_dim is None:
-        raise ValueError("parallel_dim must be provided.")
+    assert parallel_dim is not None, "parallel_dim must be provided."
     
     for strategy in parallel_dim:
         if strategy not in ["TP", "DP", "PP", "VP"]:

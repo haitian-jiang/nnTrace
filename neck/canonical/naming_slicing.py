@@ -7,7 +7,7 @@ from .megatron import to_canonical_param_mod_megatron, infer_tp_slice_megatron
 
 def to_canonical_param_mod(
         local_name: str, 
-        vp_rank: Optional[int] = None
+        vp_rank: int,
     ) -> str:
     """
     Convert a weight name or a module name to a canonical name.

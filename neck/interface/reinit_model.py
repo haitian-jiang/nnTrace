@@ -23,7 +23,7 @@ def _check_vp_rank(
     if CONFIG.parallel.size.vp_size is None:
         assert vp_rank is None or vp_rank ==0, \
             "vp_rank must be None or 0 if virtual pipeline is not used"
-        vp_rank = None  # for compatibility with downstream code
+        vp_rank = 0  # rely on CONFIG.parallel.size.vp_size to show no vpp
     else:
         assert vp_rank is not None, \
             "vp_rank must be provided if virtual pipeline is used"
@@ -44,6 +44,7 @@ def reinit_model(
     If virtual pipeline is not used, vp_rank should be None.
     """
     vp_rank = _check_vp_rank(model, vp_rank)
+    assert isinstance(vp_rank, int), "vp_rank must be an integer"
     
     # check that the model has already been initialized
     assert (
@@ -88,7 +89,8 @@ def register_model_hooks(
     Register hooks to log activations / grads during forward / backward pass.
     """
     vp_rank = _check_vp_rank(model, vp_rank)
-    
+    assert isinstance(vp_rank, int), "vp_rank must be an integer"
+
     for m_name, module in model.named_modules():
         m_annotation = get_annotation(m_name, "module")
         if m_annotation is None:
