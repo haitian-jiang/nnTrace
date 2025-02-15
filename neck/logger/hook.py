@@ -1,10 +1,17 @@
 import torch
+from collections import defaultdict
 from typing import Tuple, Optional, TYPE_CHECKING
 if TYPE_CHECKING:
     from neck.interface import TensorAnnotation, ModuleAnnotation
+    from omegaconf import OmegaConf
 from .logger import log_tensor, TensorInfo
+from neck import CONFIG
 import neck.canonical as canonical
 import neck.random
+
+
+_fwd_pass_cnt = defaultdict(lambda: -1)  # Counting from 0
+_bwd_pass_cnt = defaultdict(lambda: -1)
 
 
 class HookBase:
@@ -13,26 +20,37 @@ class HookBase:
             canon_mod_name: str, 
             t_annotation: "TensorAnnotation",
             m_annotation: "ModuleAnnotation",
-            module: Optional[torch.nn.Module] = None,
+            module: torch.nn.Module,
+            neck_config: "OmegaConf",
+            vp_rank: int,
         ):
         self.canon_mod_name = canon_mod_name  # canonical module name
         self.t_annotation = t_annotation
         self.m_annotation = m_annotation  # to access output_idx
         self.module = module
+        self.neck_config = neck_config
+        self.dp_rank = CONFIG.parallel.rank.dp_rank
+        self.dp_size = CONFIG.parallel.size.dp_size
+        self.vp_rank = vp_rank
 
 
 class FwdHookBase(HookBase):
     def get_canon_act_name(self, is_module_output=True) -> str:
-        # TODO: add global batch index
         # pre hook: input, post hook: output
         activation_suffix = "output" if is_module_output else "input"
-        return f"batch|{self.canon_mod_name}|{activation_suffix}"
+        fwd_pass_called = _fwd_pass_cnt[self.vp_rank]
+
+        # NOTE: hardcoded for Megatron-LM, can read the relation from config
+        local_batch_id = fwd_pass_called
+
+        global_batch_id = local_batch_id * self.dp_size + self.dp_rank
+        return f"batch.{global_batch_id}|{self.canon_mod_name}|{activation_suffix}"
 
     def get_tensor_info(self, activation: torch.Tensor) -> TensorInfo:
         full_shape, slices = canonical.infer_tp_slice(activation.shape, self.t_annotation)
         # NOTE: no double checking of shape and slice here, could add if exists in annotation.
         return TensorInfo(
-            tensor=activation.cpu(),
+            tensor=activation.detach().cpu(),
             canonical_name=self.get_canon_act_name(),
             full_shape=full_shape,
             shard_slice=slices,
@@ -174,6 +192,7 @@ def register_hook(
         module: torch.nn.Module,
         canon_mod_name: str,
         annotation: "ModuleAnnotation",
+        vp_rank: int,
     ) -> None:
     # TODO: only fwd hook now, later add bwd hook.
 
@@ -182,10 +201,12 @@ def register_hook(
     assert hasattr(module, "forward"), \
         "module must have a forward method"
     
-    # forward pre hooks: 
-    #   log output from last module 
-    #   rewrite input for this module
-    #   other user-defined pre hooks
+    """
+    forward pre hooks: 
+      log output from last module 
+      rewrite input for this module
+      other user-defined pre hooks
+    """
     if annotation.rewrite_input:
         assert annotation.input is not None, \
             f"Cannot rewrite input without tensor annotation: {canon_mod_name}"
@@ -195,6 +216,8 @@ def register_hook(
                 annotation.input,
                 annotation,
                 module,
+                CONFIG,
+                vp_rank,
             ),
             prepend=True,
         )
@@ -206,14 +229,18 @@ def register_hook(
                 annotation.input,
                 annotation,
                 module,
+                CONFIG,
+                vp_rank,
             ),
             prepend=True,
         )
 
-    # forward post hooks:
-    #  other user-defined post hooks
-    #  log output of this module
-    #  rewrite output for next module
+    """
+    forward post hooks:
+      other user-defined post hooks
+      log output of this module
+      rewrite output for next module
+    """
     if annotation.output is not None:
         module.register_forward_hook(
             FwdPostLogHook(
@@ -221,6 +248,8 @@ def register_hook(
                 annotation.output,
                 annotation,
                 module,
+                CONFIG,
+                vp_rank,
             ),
         )
     
@@ -233,5 +262,41 @@ def register_hook(
                 annotation.output,
                 annotation,
                 module,
+                CONFIG,
+                vp_rank,
             ),
+        )
+
+
+class BatchCounterHook():
+    # NOTE: only the "model" with a vp_rank will have this hook, not the submodules
+
+    def __init__(self, vp_rank: int, is_fwd: bool):
+        self.vp_rank = vp_rank
+        self.is_fwd = is_fwd
+
+    def __call__(self, module: torch.nn.Module, args: Tuple):
+        if self.is_fwd:
+            _fwd_pass_cnt[self.vp_rank] += 1
+        else:
+            _bwd_pass_cnt[self.vp_rank] += 1
+
+
+def regist_batch_cnt_hook(
+        model: torch.nn.Module, 
+        vp_rank: int, 
+        is_fwd: bool,
+    ) -> None:
+    """
+    Assumption: 
+    Each time the model is being called, it consumes a new micro batch.
+    """
+    assert isinstance(model, torch.nn.Module), \
+        "model must be an instance of torch.nn.Module"
+    assert hasattr(model, "forward"), \
+        "model must have a forward method"
+    if is_fwd:
+        model.register_forward_pre_hook(
+            BatchCounterHook(vp_rank, is_fwd), 
+            prepend=True
         )

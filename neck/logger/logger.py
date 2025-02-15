@@ -36,8 +36,6 @@ def log_tensor(
         return
     assert t_type in T_TYPE, f"Invalid tensor type {t_type}"
     destination = LOGS[t_type]
-    if canonical_name in destination:  # TODO: tentative for no data canonicalization
-        return
     assert canonical_name not in destination, \
         f"{canonical_name} already exists in the logger"
     assert tensor_info.tensor.device.type == "cpu", \
