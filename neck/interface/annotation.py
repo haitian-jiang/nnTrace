@@ -64,6 +64,7 @@ class ModuleAnnotation:
     output_idx: Optional[int] = None
     rewrite_input: Optional[bool] = False
     rewrite_output: Optional[bool] = False
+    grad: Optional[OmegaConf] = None
 
     @classmethod
     def from_dict(cls, raw_annotation: OmegaConf) -> "ModuleAnnotation":

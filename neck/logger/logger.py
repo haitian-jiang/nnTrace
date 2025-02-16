@@ -17,8 +17,7 @@ class TensorInfo:
     canonical_name: str
     full_shape: Tuple[int, ...]
     shard_slice: Tuple[slice, ...]
-    local_name: str = ""  # don't know what to do with it...
-
+    module_class: str = ""  # empty for weight tensors
 
 LOGS = defaultdict(dict)
 T_TYPE = ("activ", "g_activ", "g_param", "param")

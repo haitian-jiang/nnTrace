@@ -52,13 +52,13 @@ def reinit_model(
         hasattr(model, "state_dict")
     ), "model has not been initialized"
 
-    prefix = canonical.get_prefix(set(("TP", "PP", "VP")), vp_rank)
+    # prefix = canonical.get_prefix(set(("TP", "PP", "VP")), vp_rank)
     for name, param in model.named_parameters():
-        local_name = f"{prefix}{name}"
+        # local_name = f"{prefix}{name}"
         canon_param_name = canonical.to_canonical_param_mod(name, vp_rank)
-        annotation = get_annotation(local_name, "param")
+        annotation = get_annotation(name, "param")
         assert annotation is not None, \
-            f"Annotation not found for {local_name}"
+            f"Annotation not found for {name}"
         full_shape, tp_slice = canonical.infer_tp_slice(param.shape, annotation)
 
         # reinitialize the parameter
@@ -75,7 +75,6 @@ def reinit_model(
                 canonical_name=canon_param_name,
                 full_shape=full_shape,
                 shard_slice=tp_slice,
-                local_name=local_name
             )
             log_tensor(canon_param_name, "param", tensor_info)
 
