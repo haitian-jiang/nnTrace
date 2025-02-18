@@ -4,9 +4,10 @@
 #   output:  # tensor annotation
 #     tp_dim: null
 #   rewrite_input: False
-#   rewrite_output: False
+#   rewrite_grad_output: False
 #   input_idx: null
 #   output_idx: null  # null means only one output, so it will be a tensor.
+#   grad: null
 
 input_layernorm:
   input:
@@ -37,7 +38,6 @@ self_attention.linear_proj:
     tp_dim: null
   output_idx: 0
   grad:
-    input: tp_dim: ??
     output: True
 
 
@@ -46,11 +46,16 @@ pre_mlp_layernorm:
     tp_dim: null
   output: 
     tp_dim: null
+  grad:
+    input: True
+    output: True
 
 mlp.linear_fc1:
   output: 
-    tp_dim: -1
+    tp_dim: -1  # (seq_len, batch_size, hidden_size)
   output_idx: 0
+  grad:
+    output: True
 
 mlp.linear_fc2:
   input:
@@ -58,11 +63,16 @@ mlp.linear_fc2:
   output:
     tp_dim: null
   output_idx: 0
+  grad:
+    input: True
+    output: True
 
 layers.\d:
   output:
     tp_dim: null
   output_idx: 0
+  grad:
+    output: True
 
 word_embeddings:
   output:

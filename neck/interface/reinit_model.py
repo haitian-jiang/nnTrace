@@ -4,7 +4,7 @@ import torch.nn as nn
 import neck.canonical as canonical
 import neck.random
 from loguru import logger as clog
-from neck.logger import log_tensor, register_hook, regist_batch_cnt_hook
+from neck.logger import log_tensor, register_hook, regist_batch_cnt_hook, ParamLogHook
 from neck import CONFIG, TensorInfo
 from typing import Optional
 from .annotation import get_annotation
@@ -69,6 +69,15 @@ def reinit_model(
         new_param = new_param.to(param.dtype)
         param.data = new_param.data.to(param.device)
 
+        param.register_hook(
+            ParamLogHook(
+                canon_param_name, 
+                vp_rank,
+                full_shape, 
+                tp_slice
+            )
+        )
+
         if log_params:
             tensor_info = TensorInfo(
                 tensor=new_param,
@@ -82,7 +91,6 @@ def reinit_model(
 def register_model_hooks(
         model: torch.nn.Module,
         vp_rank: Optional[int] = None,
-
     ):
     """
     Register hooks to log activations / grads during forward / backward pass.
@@ -100,3 +108,4 @@ def register_model_hooks(
         register_hook(module, canon_mod_name, m_annotation, vp_rank)
 
     regist_batch_cnt_hook(model, vp_rank, True)  # prepend
+    regist_batch_cnt_hook(model, vp_rank, False)  # prepend

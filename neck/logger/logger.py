@@ -18,6 +18,7 @@ class TensorInfo:
     full_shape: Tuple[int, ...]
     shard_slice: Tuple[slice, ...]
     module_class: str = ""  # empty for weight tensors
+    is_grad: bool = False  # g_activ or g_param
 
 LOGS = defaultdict(dict)
 T_TYPE = ("activ", "g_activ", "g_param", "param")

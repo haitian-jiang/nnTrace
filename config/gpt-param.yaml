@@ -1,3 +1,4 @@
+# NOTE: be careful with tp_dim, since Linear layers calculate Y = XW^T + b
 word_embeddings.weight:
   full: (vocab_size_with_padding, hidden_size)
   slice: (vocab_size_with_padding // tp_size, hidden_size)
