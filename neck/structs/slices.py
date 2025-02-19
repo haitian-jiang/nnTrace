@@ -1,4 +1,4 @@
-from typing import Sequence, Tuple, Optional
+from typing import Sequence, Tuple, Optional, Union
 
 
 class ShardSlice:
@@ -38,10 +38,13 @@ class ShardSlice:
         return iter(self.shard_slice)
     
     def __hash__(self):
-        return hash(self.shard_slice)
+        return hash(
+            (tuple((s.start, s.stop) for s in self.shard_slice), 
+             self.full_shape)
+        )
     
     def __lt__(self, other: "ShardSlice") -> bool:
-        assert not self.has_overlap(other)
+        assert not self.has_overlap(other), f"{self} {other}"
         for s1, s2 in zip(self.shard_slice, other.shard_slice):
             if s1.start < s2.start:
                 return True
@@ -59,14 +62,23 @@ class ShardSlice:
         Add two ShardSlices together. 
         """
         mergeable, dim = self.mergeable(other)
-        assert mergeable, "The two ShardSlices can't be merged."
+        assert mergeable, f"The two ShardSlices can't be merged {self} {other}"
         new_ = list(self.shard_slice)
         if self < other:
             new_[dim] = slice(self[dim].start, other[dim].stop)
         else:
             new_[dim] = slice(other[dim].start, self[dim].stop)
         return ShardSlice(new_, self.full_shape)
-                
+
+    def __radd__(self, other: Union["ShardSlice", int]) -> "ShardSlice":
+        """
+        For sum() support, as the default initial value in sum() is 0.
+        """
+        if isinstance(other, int):
+            assert other == 0, "Can only add 0 to a ShardSlice in sum()."
+            return self
+        return self.__add__(other)
+
     def mergeable(self, other: "ShardSlice") -> Tuple[bool, Optional[int]]:
         """
         Check if the two ShardSlices can be merged / added into one.  The two 
@@ -104,9 +116,14 @@ class ShardSlice:
 
 
     def has_overlap(self, other: "ShardSlice") -> bool:
+        """
+        Has overlap means has overlap in all dimensions.
+        """
         for s1, s2 in zip(self.shard_slice, other.shard_slice):
-            if s1.start < s2.stop and s1.stop > s2.start or \
-                s2.start < s1.stop and s2.stop > s1.start:
-                return True
-        return False
+            if not(
+                s1.start < s2.stop and s1.stop > s2.start or
+                s2.start < s1.stop and s2.stop > s1.start
+            ):
+                return False
+        return True
 
