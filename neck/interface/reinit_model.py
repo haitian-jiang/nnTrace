@@ -5,9 +5,9 @@ import neck.canonical as canonical
 import neck.random
 from loguru import logger as clog
 from neck.logger import log_tensor, register_hook, regist_batch_cnt_hook, ParamLogHook
-from neck import CONFIG, TensorInfo
+from neck import CONFIG
 from typing import Optional
-from .annotation import get_annotation
+from neck.structs import get_annotation, TensorInfo, ShardSlice
 
 
 def _check_vp_rank(
@@ -82,8 +82,7 @@ def reinit_model(
             tensor_info = TensorInfo(
                 tensor=new_param,
                 canonical_name=canon_param_name,
-                full_shape=full_shape,
-                shard_slice=tp_slice,
+                shape=ShardSlice(tp_slice, full_shape),
             )
             log_tensor(canon_param_name, "param", tensor_info)
 

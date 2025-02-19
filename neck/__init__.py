@@ -1,28 +1,25 @@
 # Import individuals then import modules, otherwise circular import error.
 from .config import CONFIG
-from .logger import TensorInfo
-
 from .interface import (
     reinit_model,
 )
+from . import structs
 from . import interface
 from . import config
 from . import random
 from . import canonical
 from . import logger
+from . import inspector
 
 
 __all__ = [
-    # ------ classes ------
-    "TensorInfo",
-    # ------ variables ------
     "CONFIG",
-    # ------ functions ------
     "reinit_model",
-    # ------ modules ------
+    "structs",
     "config",
     "interface",
     "random",
     "canonical",
     "logger",
+    "inspector",
 ]

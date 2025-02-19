@@ -1,9 +1,8 @@
 import torch
 from collections import defaultdict
-from typing import Tuple, Literal, TYPE_CHECKING
-if TYPE_CHECKING:
-    from neck.interface import TensorAnnotation, ModuleAnnotation
-from .logger import log_tensor, TensorInfo
+from typing import Tuple, Literal
+from neck.structs import TensorAnnotation, ModuleAnnotation, TensorInfo, ShardSlice
+from .logger import log_tensor
 from neck import CONFIG
 import neck.canonical as canonical
 import neck.random
@@ -17,8 +16,8 @@ class ModuleHookBase:
     def __init__(
             self, 
             canon_mod_name: str, 
-            t_annotation: "TensorAnnotation",
-            m_annotation: "ModuleAnnotation",
+            t_annotation: TensorAnnotation,
+            m_annotation: ModuleAnnotation,
             module: torch.nn.Module,
             vp_rank: int,
         ):
@@ -64,8 +63,9 @@ class ModuleHookBase:
         return TensorInfo(
             tensor=activation.detach().cpu(),
             canonical_name=canonical_name,
-            full_shape=full_shape,
-            shard_slice=slices,
+            shape=ShardSlice(slices, full_shape),
+            # full_shape=full_shape,
+            # shard_slice=slices,
             module_class=self.module.__class__.__name__,
             is_grad=is_grad,
         )  # TODO: add info of whether from module with input rewritten.
@@ -420,8 +420,9 @@ class ParamLogHook:
         tensor_info = TensorInfo(
             tensor=grad.detach().cpu(),
             canonical_name=canonical_grad_name,
-            full_shape=self.full_shape,
-            shard_slice=self.tp_slice,
+            shape=ShardSlice(self.tp_slice, self.full_shape),
+            # full_shape=self.full_shape,
+            # shard_slice=self.tp_slice,
             is_grad=True,
         )
         log_tensor(canonical_grad_name, "g_param", tensor_info)
