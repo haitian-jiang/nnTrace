@@ -43,8 +43,8 @@ class TensorInfo:
                           One is zero, abandon it: {info.canonical_name}")
                 info_dict[shard] = info
             else: # Same shard, different grads, shouldn't happen. But add them.
-                print(info_dict[shard].tensor.sum())
-                print(info.tensor.sum())
+                print(info_dict[shard].tensor.to(torch.float64).sum())
+                print(info.tensor.to(torch.float64).sum())
                 clog.warning(f"Multiple tensors for the same shard.  
                              Different value, add them: {info.canonical_name}")
                 info_dict[shard].tensor += info.tensor
