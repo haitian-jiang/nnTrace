@@ -12,7 +12,7 @@ annotations:
 architecture:
   num_layers: 24
   vocab_size: 50257
-  vocab_size_with_padding: 50304  # 50304, 50432
+  # vocab_size_with_padding: 50304  # 50304, 50432
   hidden_size: 1024
   num_attention_heads: 16
   seq_length: 1024
