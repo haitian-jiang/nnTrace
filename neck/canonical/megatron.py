@@ -112,11 +112,12 @@ def infer_tp_slice_megatron(
     # checking, if full_shape and slices are proveded in annotation
     if annotation.full is not None or annotation.slice is not None:
         hidden_size = CONFIG.architecture.hidden_size
-        vocab_size_with_padding = CONFIG.architecture.vocab_size_with_padding
         seq_length = CONFIG.architecture.seq_length
-        _allowed_locals = {"tp_size": tp_size, "hidden_size": hidden_size,
-                        "vocab_size_with_padding": vocab_size_with_padding,
-                        "seq_length": seq_length}
+        _allowed_locals = {
+            "tp_size": tp_size,
+            "hidden_size": hidden_size,
+            "seq_length": seq_length
+        }
     
     if annotation.full is not None:
         annotation_full_shape = eval(annotation.full, {}, _allowed_locals)

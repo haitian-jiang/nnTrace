@@ -107,6 +107,6 @@ final_layernorm.bias:
 
 
 output_layer.weight:
-  full: (vocab_size_with_padding, hidden_size)
-  slice: (vocab_size_with_padding // tp_size, hidden_size)
+  # full: (vocab_size_with_padding, hidden_size)
+  # slice: (vocab_size_with_padding // tp_size, hidden_size)
   tp_dim: 0

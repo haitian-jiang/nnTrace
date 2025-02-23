@@ -69,7 +69,7 @@ def _merge_distr_logs(log_path: str, t_type: str) -> None:
     clog.info(f"Saved merged logs to {merged_file_path}")
 
 
-def merge_distr_logs(log_path: str, t_type: Optional[str]) -> None:
+def merge_distr_logs(log_path: str, t_type: Optional[str] = None) -> None:
     """
     Merge the logs from different ranks into a single log file.
     Works for one specific tensor type.

@@ -33,20 +33,20 @@ class TensorInfo:
             if shard not in info_dict:
                 info_dict[shard] = info
             elif torch.allclose(info_dict[shard].tensor, info.tensor):
-                clog.info(f"Multiple tensors for the same shard. 
-                          Same value, abandon one: {info.canonical_name}")
+                clog.info(f"Multiple tensors for the same shard."
+                          f"Same value, abandon one: {info.canonical_name}")
             elif torch.allclose(info.tensor, zero):
-                clog.info(f"Multiple tensors for the same shard. 
-                          One is zero, abandon it: {info.canonical_name}")
+                clog.info(f"Multiple tensors for the same shard."
+                          f"One is zero, abandon it: {info.canonical_name}")
             elif torch.allclose(info_dict[shard].tensor, zero):
-                clog.info(f"Multiple tensors for the same shard. 
-                          One is zero, abandon it: {info.canonical_name}")
+                clog.info(f"Multiple tensors for the same shard."
+                          f"One is zero, abandon it: {info.canonical_name}")
                 info_dict[shard] = info
             else: # Same shard, different grads, shouldn't happen. But add them.
                 print(info_dict[shard].tensor.to(torch.float64).sum())
                 print(info.tensor.to(torch.float64).sum())
-                clog.warning(f"Multiple tensors for the same shard.  
-                             Different value, add them: {info.canonical_name}")
+                clog.warning(f"Multiple tensors for the same shard."
+                             f"Different value, add them: {info.canonical_name}")
                 info_dict[shard].tensor += info.tensor
         return list(info_dict.values())
 
