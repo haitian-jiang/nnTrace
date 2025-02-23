@@ -1,4 +1,5 @@
 from typing import Sequence, Tuple, Optional, Union
+import torch
 
 
 class ShardSlice:
@@ -11,7 +12,19 @@ class ShardSlice:
                     Used for adding two slices together.  Also don't need to 
                     store the full shape again in TensorInfo.
     """
-    def __init__(self, shard_slice: Sequence[slice], full_shape: Sequence[int]):
+    def __init__(
+            self, 
+            shard_slice: Sequence[slice] | None, 
+            full_shape: Sequence[int]
+        ):
+        """
+        Args:
+            shard_slice: The slice of the sharded tensor.  If None, return the
+                         full tensor slice.
+            full_shape: Full shape of the tensor before sharding.
+        """
+        if shard_slice is None:
+            shard_slice = [slice(0, dim) for dim in full_shape]
         assert len(shard_slice) == len(full_shape)
         for s, dim in zip(shard_slice, full_shape):
             assert 0 <= s.start < s.stop <= dim
@@ -127,3 +140,20 @@ class ShardSlice:
                 return False
         return True
 
+    @staticmethod
+    def get_completeness(shard_slices: Sequence["ShardSlice"]) -> torch.Tensor:
+        """
+        Check if the list of ShardSlices is complete, i.e., covers the full
+        tensor.
+        """
+        full_shape = shard_slices[0].full_shape
+        for shard_slice in shard_slices:
+            assert shard_slice.full_shape == full_shape
+
+        mask = torch.zeros(full_shape, dtype=torch.int8)
+        for shard_slice in shard_slices:
+            mask[shard_slice.shard_slice] += 1
+        return mask
+
+
+__all__ = ["ShardSlice"]

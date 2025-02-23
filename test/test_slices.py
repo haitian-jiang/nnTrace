@@ -63,11 +63,22 @@ class TestShardSlice(unittest.TestCase):
         self.assertTrue(shard1.has_overlap(shard2))
         self.assertFalse(shard1.has_overlap(shard3))
     
-    def test_sum_1(self):
+    def test_sum(self):
         shard1 = ShardSlice([slice(0, 4), slice(4, 8)], [8, 8])
         shard2 = ShardSlice([slice(4, 8), slice(4, 8)], [8, 8])
         shard_sum = sum([shard1, shard2])
         self.assertEqual(shard_sum, ShardSlice([slice(0, 8), slice(4, 8)], [8, 8]))
+
+    def test_complete(self):
+        shard1 = ShardSlice([slice(0, 4), slice(0, 4)], (8, 8))
+        shard2 = ShardSlice([slice(0, 4), slice(4, 8)], (8, 8))
+        shard3 = ShardSlice([slice(4, 8), slice(0, 4)], (8, 8))
+        shard4 = ShardSlice([slice(4, 8), slice(4, 8)], (8, 8))
+        self.assertTrue(ShardSlice.is_complete([shard1, shard2, shard3, shard4]))
+        shard5 = ShardSlice([slice(2, 6), slice(2, 6)], (8, 8))
+        self.assertFalse(ShardSlice.is_complete([shard1, shard2, shard3, shard4, shard5]))
+        shard6 = ShardSlice([slice(0, 3), slice(0, 4)], (8, 8))
+        self.assertFalse(ShardSlice.is_complete([shard6, shard2, shard3, shard4]))
 
 if __name__ == "__main__":
     unittest.main()
