@@ -1,12 +1,11 @@
 import numpy as np
 import torch
 import xxhash
-from typing import List, Tuple, Optional
 from .random_backend import seed_to_rand_parallel
 # from numba import njit
 
 
-def _slice_to_index(slices: Tuple[slice]) -> Tuple[np.ndarray]:
+def _slice_to_index(slices: tuple[slice]) -> tuple[np.ndarray]:
     """Convert a tuple of slices to a tuple of indices.
     
     Args:
@@ -40,8 +39,8 @@ def _slice_to_index(slices: Tuple[slice]) -> Tuple[np.ndarray]:
 def rand(
         name: str, 
         shape: tuple, 
-        slices: Optional[Tuple[slice, ...]] = None,
-        backend: str = "cxx",
+        slices: tuple[slice, ...] | None = None,
+        backend: str = "pytorch",
     ) -> torch.Tensor:
     """Generate a random tensor based on a unique name and shape.
 
@@ -56,11 +55,15 @@ def rand(
     # Giving no slices returns the full tensor
     if slices is None:
         slices = tuple(slice(0, d) for d in shape)
-    slice_shape = tuple((s.stop - s.start) for s in slices)
 
     seed = xxhash.xxh64(name).intdigest()
+    if backend == "pytorch":
+        g = torch.Generator()
+        g.manual_seed(seed)
+        return torch.rand(shape, generator=g)[slices].contiguous()
+    
+    slice_shape = tuple((s.stop - s.start) for s in slices)
     seeds = np.zeros(slice_shape, dtype=np.uint64)
-
     mul_index = _slice_to_index(slices)
     linear_index = np.ravel_multi_index(mul_index, shape).astype(np.uint64)
     
@@ -68,10 +71,27 @@ def rand(
     # May overflow but we use uint64 so it is mod by 2^64
     seeds = seed + linear_index
 
-    if backend == "numpy":
-        random_matrix = seed_to_rand(seeds)
-        return torch.from_numpy(random_matrix)
-    elif backend == "cxx":
+    if backend == "cxx":
         return seed_to_rand_parallel(torch.from_numpy(seeds.astype(np.int64)))
+    else:
+        assert False, f"Backend {backend} is not supported."
+
+
+def randn(
+        name: str,
+        shape: tuple,
+        slices: tuple[slice, ...] | None = None,
+        backend: str = "pytorch",
+    ) -> torch.Tensor:
+    """Generate a random tensor based on a unique name and shape."""
+    if slices is None:
+        slices = tuple(slice(0, d) for d in shape)
+    seed = xxhash.xxh64(name).intdigest()
+    if backend == "pytorch":
+        g = torch.Generator()
+        g.manual_seed(seed)
+        full_tensor = torch.randn(shape, generator=g)
+        slice_tensor = full_tensor[slices]
+        return slice_tensor.contiguous()
     else:
         assert False, f"Backend {backend} is not supported."

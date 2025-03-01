@@ -1,6 +1,7 @@
 import unittest
 from neck.structs import ShardSlice
 
+
 class TestShardSlice(unittest.TestCase):
     def test_initialization(self):
         shard = ShardSlice([slice(0, 4), slice(4, 8)], [8, 8])
@@ -79,6 +80,7 @@ class TestShardSlice(unittest.TestCase):
         self.assertFalse(ShardSlice.is_complete([shard1, shard2, shard3, shard4, shard5]))
         shard6 = ShardSlice([slice(0, 3), slice(0, 4)], (8, 8))
         self.assertFalse(ShardSlice.is_complete([shard6, shard2, shard3, shard4]))
+
 
 if __name__ == "__main__":
     unittest.main()
