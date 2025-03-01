@@ -130,3 +130,37 @@ def infer_tp_slice_megatron(
             f"Slice mismatch: {slices} vs {annotation_slice_shape}"
         
     return full_shape, tuple(slices)
+
+
+def rescale_grad_for_pp_microbatch_hook(grad: torch.Tensor) -> torch.Tensor:
+    """
+    Log hook. Rescale the gradient tensor. In Megatron, during PP, the 
+    output_tensor is divided by the number of microbatches, so the gradients
+    are shrunk. This hook rescales the gradient tensor to compensate for that.
+
+    Args:
+        grad: The gradient tensor being shrunk by Megatron.
+
+    Returns:
+        The original gradient tensor.
+    """
+    try:
+        from megatron.core.num_microbatches_calculator import get_num_microbatches
+        num_microbatches = get_num_microbatches()
+    except ImportError:
+        num_microbatches = CONFIG.parallel.num_microbatches
+
+    if num_microbatches > 1:
+        grad *= num_microbatches
+    return grad
+
+
+grad_log_hook_megatron = [rescale_grad_for_pp_microbatch_hook]
+
+
+__all__ = [
+    "get_megatron_lm_parallel_rank",
+    "to_canonical_param_mod_megatron",
+    "infer_tp_slice_megatron",
+    "grad_log_hook_megatron",
+]

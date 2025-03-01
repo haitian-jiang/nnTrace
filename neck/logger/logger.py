@@ -10,6 +10,7 @@ from loguru import logger as clog
 from neck import CONFIG
 from neck.canonical import get_parallel_states
 from neck.structs import TensorInfo, T_TYPE
+from .log_hooks import GRAD_LOG_HOOKS
 
 
 LOGS = defaultdict(dict)
@@ -26,6 +27,14 @@ def log_tensor(
     if not CONFIG.logging.enable_logging:
         return
     assert t_type in T_TYPE, f"Invalid tensor type {t_type}"
+    assert tensor_info.tensor.device.type == "cpu", \
+        "Tensors need to be moved to CPU before being logged"
+
+    # log hooks
+    if "g" in t_type:
+        for hook in GRAD_LOG_HOOKS:
+            tensor_info.tensor = hook(tensor_info.tensor)
+
     destination = LOGS[t_type]
     if canonical_name in destination:
         old_tensor = destination[canonical_name].tensor
@@ -33,10 +42,6 @@ def log_tensor(
             return
         else:
             clog.error(f"Conflicting tensors when logging: {canonical_name}")
-    assert canonical_name not in destination, \
-        f"{canonical_name} already exists in the logger"
-    assert tensor_info.tensor.device.type == "cpu", \
-        "Tensors need to be moved to CPU before being logged"
     destination[canonical_name] = tensor_info
 
 
