@@ -1,4 +1,4 @@
-from typing import Tuple, Optional
+from typing import Optional
 from neck import CONFIG
 from neck.structs import TensorAnnotation
 from .megatron import to_canonical_param_mod_megatron, infer_tp_slice_megatron
@@ -24,9 +24,9 @@ def to_canonical_param_mod(
 
 
 def infer_tp_slice(
-        runtime_shape: Tuple[int, ...],
+        runtime_shape: tuple[int, ...],
         annotation: Optional[TensorAnnotation] = None,
-    ) -> Tuple[Tuple[int, ...], Tuple[slice, ...]]:
+    ) -> tuple[tuple[int, ...], tuple[slice, ...]]:
     """
     Infer the full shape and slice for a tensor given its runtime shape and 
     annotation information.  If the annotation is None, then the runtime shape

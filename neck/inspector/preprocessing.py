@@ -1,7 +1,7 @@
 import torch
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Optional
 from loguru import logger as clog
 from neck.structs import TensorInfo, T_TYPE
 
@@ -19,8 +19,8 @@ def _is_full_tensor(tensor_info: TensorInfo) -> bool:
 
 
 def _merge_logs(
-        log_collections: Dict[str, List[TensorInfo]]
-    ) -> Dict[str, TensorInfo | List[TensorInfo]]:
+        log_collections: dict[str, list[TensorInfo]]
+    ) -> dict[str, TensorInfo | list[TensorInfo]]:
     """
     Update the merged logs with the raw logs.
     """

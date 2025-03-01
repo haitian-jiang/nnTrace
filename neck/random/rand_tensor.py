@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import xxhash
+from typing import Optional
 from .random_backend import seed_to_rand_parallel
 # from numba import njit
 
@@ -39,7 +40,7 @@ def _slice_to_index(slices: tuple[slice]) -> tuple[np.ndarray]:
 def rand(
         name: str, 
         shape: tuple, 
-        slices: tuple[slice, ...] | None = None,
+        slices: Optional[tuple[slice, ...]] = None,
         backend: str = "pytorch",
     ) -> torch.Tensor:
     """Generate a random tensor based on a unique name and shape.
@@ -80,7 +81,7 @@ def rand(
 def randn(
         name: str,
         shape: tuple,
-        slices: tuple[slice, ...] | None = None,
+        slices: Optional[tuple[slice, ...]] = None,
         backend: str = "pytorch",
     ) -> torch.Tensor:
     """Generate a random tensor based on a unique name and shape."""

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Dict, Literal
+from typing import Optional, Literal
 from omegaconf import OmegaConf
 from neck import CONFIG
 
@@ -87,7 +87,7 @@ def load_annotations(a_type: str) -> OmegaConf:
 
 
 
-def _parse_param_annotation() -> Dict[str, TensorAnnotation]:
+def _parse_param_annotation() -> dict[str, TensorAnnotation]:
     param_annotations = {}
     raw_annotations = load_annotations("param")
     for suffix, raw_annotation in raw_annotations.items():
@@ -97,7 +97,7 @@ def _parse_param_annotation() -> Dict[str, TensorAnnotation]:
     return param_annotations
     
 
-def _parse_module_annotation() -> Dict[str, ModuleAnnotation]:
+def _parse_module_annotation() -> dict[str, ModuleAnnotation]:
     module_annotations = {}
     raw_annotations = load_annotations("module")
     for suffix, raw_annotation in raw_annotations.items():

@@ -3,7 +3,6 @@ import torch
 import torch.nn as nn
 import neck.canonical as canonical
 import neck.random
-from loguru import logger as clog
 from neck.logger import log_tensor, register_hook, regist_batch_cnt_hook, ParamLogHook
 from neck import CONFIG
 from typing import Optional
@@ -74,7 +73,7 @@ def reinit_model(
                 canon_param_name, 
                 vp_rank,
                 full_shape, 
-                tp_slice
+                tp_slice,
             )
         )
 
@@ -102,8 +101,6 @@ def register_model_hooks(
         if m_annotation is None:
             continue
         canon_mod_name = canonical.to_canonical_param_mod(m_name, vp_rank)
-        rank = CONFIG.parallel.rank.world_rank
-        clog.debug(f"[Rank {rank}] Registering hooks for {canon_mod_name}")
         register_hook(module, canon_mod_name, m_annotation, vp_rank)
 
     regist_batch_cnt_hook(model, vp_rank, True)  # prepend

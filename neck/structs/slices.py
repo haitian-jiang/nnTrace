@@ -1,4 +1,4 @@
-from typing import Sequence, Tuple, Optional, Union
+from typing import Sequence, Optional, Union
 import torch
 
 
@@ -92,7 +92,7 @@ class ShardSlice:
             return self
         return self.__add__(other)
 
-    def mergeable(self, other: "ShardSlice") -> Tuple[bool, Optional[int]]:
+    def mergeable(self, other: "ShardSlice") -> tuple[bool, Optional[int]]:
         """
         Check if the two ShardSlices can be merged / added into one.  The two 
         slices must be next to each other in the adding dimension.  The slices 

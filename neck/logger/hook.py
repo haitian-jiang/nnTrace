@@ -1,6 +1,6 @@
 import torch
 from collections import defaultdict
-from typing import Tuple, Literal
+from typing import Literal
 from neck.structs import TensorAnnotation, ModuleAnnotation, TensorInfo, ShardSlice
 from .logger import log_tensor
 from neck import CONFIG
@@ -81,7 +81,7 @@ class FwdPreLogHook(ModuleHookBase):
     def __call__(
             self, 
             module: torch.nn.Module, 
-            args: Tuple[torch.Tensor],
+            args: tuple[torch.Tensor],
         ) -> None:
         """
         Log the input (actually output of last module) activation.
@@ -128,7 +128,7 @@ class FwdPreRewriteHook(ModuleHookBase):
     def __call__(
             self, 
             module: torch.nn.Module, 
-            args: Tuple,
+            args: tuple,
         ) -> None:
         assert module is self.module, \
             f"module mismatch in {self.canon_mod_name} pre rewrite"
@@ -154,8 +154,8 @@ class FwdPostLogHook(ModuleHookBase):
     def __call__(
             self, 
             module: torch.nn.Module, 
-            args: Tuple, 
-            output: torch.Tensor | Tuple,  # python >= 3.10
+            args: tuple, 
+            output: torch.Tensor | tuple,  # python >= 3.10
         ) -> None:
 
         # checkings
@@ -187,7 +187,7 @@ class BwdPreLogHook(ModuleHookBase):
     def __call__(
         self, 
         module: torch.nn.Module,
-        grad_output: Tuple[torch.Tensor],
+        grad_output: tuple[torch.Tensor],
     ) -> None:
         for idx, grad in enumerate(grad_output):
             if grad is None:
@@ -207,7 +207,7 @@ class BwdPreRewriteHook(ModuleHookBase):
     def __call__(
         self,
         module: torch.nn.Module,
-        grad_output: Tuple[torch.Tensor],
+        grad_output: tuple[torch.Tensor],
     ) -> None:
         for idx, grad in enumerate(grad_output):
             if grad is None:
@@ -230,8 +230,8 @@ class BwdPostLogHook(ModuleHookBase):
     def __call__(
         self,
         module: torch.nn.Module,
-        grad_input: Tuple[torch.Tensor],
-        grad_output: Tuple[torch.Tensor],
+        grad_input: tuple[torch.Tensor],
+        grad_output: tuple[torch.Tensor],
     ) -> None:
         for idx, grad in enumerate(grad_input):
             if grad is None:
@@ -357,7 +357,7 @@ class BatchCounterHook:
         self.vp_rank = vp_rank
         self.is_fwd = is_fwd
 
-    def __call__(self, module: torch.nn.Module, args: Tuple):
+    def __call__(self, module: torch.nn.Module, args: tuple):
         if self.is_fwd:
             _fwd_pass_cnt[self.vp_rank] += 1
         else:
@@ -394,8 +394,8 @@ class ParamLogHook:
         self,
         canon_param_name: str,
         vp_rank: int,
-        full_shape: Tuple[int, ...],
-        tp_slice: Tuple[slice, ...],
+        full_shape: tuple[int, ...],
+        tp_slice: tuple[slice, ...],
     ) -> None:
         self.canon_param_name = canon_param_name
         self.dp_rank = CONFIG.parallel.rank.dp_rank

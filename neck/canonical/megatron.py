@@ -1,5 +1,5 @@
 import torch
-from typing import Tuple, Optional
+from typing import Optional
 from omegaconf import OmegaConf
 from neck import CONFIG
 from neck.structs import TensorAnnotation
@@ -86,9 +86,9 @@ def to_canonical_param_mod_megatron(
 
 
 def infer_tp_slice_megatron(
-        runtime_shape: Tuple[int, ...],
+        runtime_shape: tuple[int, ...],
         annotation: Optional[TensorAnnotation] = None,
-    ) -> Tuple[Tuple[int, ...], Tuple[slice, ...]]:
+    ) -> tuple[tuple[int, ...], tuple[slice, ...]]:
 
     if annotation is None:
         return runtime_shape, tuple(slice(0, dim) for dim in runtime_shape)

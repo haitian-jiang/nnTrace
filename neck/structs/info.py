@@ -1,6 +1,5 @@
 import torch
 from dataclasses import dataclass
-from typing import Tuple, List
 from .slices import ShardSlice
 from loguru import logger as clog
 
@@ -16,7 +15,7 @@ class TensorInfo:
     is_grad: bool = False  # g_activ or g_param
 
     @staticmethod
-    def _multiple_grads_each_shard(t_infos: List["TensorInfo"]) -> "TensorInfo":
+    def _multiple_grads_each_shard(t_infos: list["TensorInfo"]) -> "TensorInfo":
         """
         The input tensor info lists contains the same amount (>1) of grads for
         each shard.  Check and add them into one tensor info for each shard.
@@ -33,25 +32,26 @@ class TensorInfo:
             if shard not in info_dict:
                 info_dict[shard] = info
             elif torch.allclose(info_dict[shard].tensor, info.tensor):
-                clog.info(f"Multiple tensors for the same shard."
-                          f"Same value, abandon one: {info.canonical_name}")
+                # clog.info(f"Multiple tensors for the same shard."
+                #           f"Same value, abandon one: {info.canonical_name}")
+                continue
             elif torch.allclose(info.tensor, zero):
-                clog.info(f"Multiple tensors for the same shard."
+                clog.info(f"Multiple tensors for the same shard. "
                           f"One is zero, abandon it: {info.canonical_name}")
             elif torch.allclose(info_dict[shard].tensor, zero):
-                clog.info(f"Multiple tensors for the same shard."
+                clog.info(f"Multiple tensors for the same shard. "
                           f"One is zero, abandon it: {info.canonical_name}")
                 info_dict[shard] = info
             else: # Same shard, different grads, shouldn't happen. But add them.
                 print(info_dict[shard].tensor.to(torch.float64).sum())
                 print(info.tensor.to(torch.float64).sum())
-                clog.warning(f"Multiple tensors for the same shard."
+                clog.warning(f"Multiple tensors for the same shard. "
                              f"Different value, add them: {info.canonical_name}")
                 info_dict[shard].tensor += info.tensor
         return list(info_dict.values())
 
     @staticmethod
-    def merge_tensor_info(t_infos: List["TensorInfo"]) -> "TensorInfo":
+    def merge_tensor_info(t_infos: list["TensorInfo"]) -> "TensorInfo":
         """
         Merge the list of TensorInfo from shards into one TensorInfo for the
         full tensor.

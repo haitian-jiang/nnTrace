@@ -4,7 +4,7 @@ import datetime
 from pathlib import Path
 from dataclasses import dataclass
 from collections import defaultdict
-from typing import Tuple, Literal
+from typing import Literal
 from omegaconf import OmegaConf
 from loguru import logger as clog
 from neck import CONFIG

@@ -1,6 +1,5 @@
 import torch
 from omegaconf import OmegaConf
-from typing import Tuple, Optional
 from neck import CONFIG
 from .megatron import get_megatron_lm_parallel_rank
 
