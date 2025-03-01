@@ -7,7 +7,8 @@ def _load_config():
     config_path = os.environ.get("NECK_CONFIG_PATH", None)
 
     if config_path is None:
-        config_path = "/home/ubuntu/repos/NECK/config/gpt_tp.yaml"
+        return None
+        # config_path = "/home/ubuntu/repos/NECK/config/gpt.yaml"
         # raise ValueError("Environment variable NECK_CONFIG_PATH is not set.")
 
     if not Path(config_path).is_absolute():
