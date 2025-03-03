@@ -132,7 +132,10 @@ def infer_tp_slice_megatron(
     return full_shape, tuple(slices)
 
 
-def rescale_grad_for_pp_microbatch_hook(grad: torch.Tensor) -> torch.Tensor:
+def _rescale_grad_for_pp_microbatch_hook(
+        grad_info: TensorInfo, 
+        t_type: str
+    ) -> TensorInfo:
     """
     Log hook. Rescale the gradient tensor. In Megatron, during PP, the 
     output_tensor is divided by the number of microbatches, so the gradients
@@ -144,6 +147,9 @@ def rescale_grad_for_pp_microbatch_hook(grad: torch.Tensor) -> torch.Tensor:
     Returns:
         The original gradient tensor.
     """
+    if t_type not in ["g_activ", "g_param"]:
+        return grad_info
+    # only for grad obtained by torch hooks
     try:
         from megatron.core.num_microbatches_calculator import get_num_microbatches
         num_microbatches = get_num_microbatches()
@@ -151,16 +157,42 @@ def rescale_grad_for_pp_microbatch_hook(grad: torch.Tensor) -> torch.Tensor:
         num_microbatches = CONFIG.parallel.num_microbatches
 
     if num_microbatches > 1:
-        grad *= num_microbatches
-    return grad
+        grad_info.tensor *= num_microbatches
+    return grad_info
 
 
-grad_log_hook_megatron = [rescale_grad_for_pp_microbatch_hook]
+def _finalize_model_grads_megatron(
+        grad_info: TensorInfo, 
+        t_type: str
+    ) -> TensorInfo:
+    """
+    Some gradients are synced before grad update in `finalize_model_grads`.
+    For example, the layernorm gradients and embedding+lm_head grad.
+    These gradients has full shape, and has different value on different ranks.
+    Need to leave information for the merger later to add them together.
+    """
+    if t_type not in ["g_param"]:
+        return grad_info
+    c_name = grad_info.canonical_name
+    if (
+        "layernorm" in c_name or 
+        "layer_norm" in c_name or
+        "self_attention.linear_proj.bias" in c_name or
+        "mlp.linear_fc2.bias" in c_name
+    ):  # TODO: add embedding later
+        grad_info.extra["need_finalize_grad"] = True
+    return grad_info
+
+
+
+log_hook_megatron = [_finalize_model_grads_megatron]  
+if True:  # TODO: change to NO calculate-per-tok-loss
+    log_hook_megatron.append(_rescale_grad_for_pp_microbatch_hook)
 
 
 __all__ = [
     "get_megatron_lm_parallel_rank",
     "to_canonical_param_mod_megatron",
     "infer_tp_slice_megatron",
-    "grad_log_hook_megatron",
+    "log_hook_megatron",
 ]

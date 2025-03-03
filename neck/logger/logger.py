@@ -10,7 +10,7 @@ from loguru import logger as clog
 from neck import CONFIG
 from neck.canonical import get_parallel_states
 from neck.structs import TensorInfo, T_TYPE
-from .log_hooks import GRAD_LOG_HOOKS
+from .log_hooks import LOG_HOOKS
 
 
 LOGS = defaultdict(dict)
@@ -30,10 +30,8 @@ def log_tensor(
     assert tensor_info.tensor.device.type == "cpu", \
         "Tensors need to be moved to CPU before being logged"
 
-    # log hooks
-    if "g" in t_type:
-        for hook in GRAD_LOG_HOOKS:
-            tensor_info.tensor = hook(tensor_info.tensor)
+    for hook in LOG_HOOKS:
+        tensor_info = hook(tensor_info, t_type)
 
     destination = LOGS[t_type]
     if canonical_name in destination:

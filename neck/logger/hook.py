@@ -64,8 +64,6 @@ class ModuleHookBase:
             tensor=activation.detach().cpu(),
             canonical_name=canonical_name,
             shape=ShardSlice(slices, full_shape),
-            # full_shape=full_shape,
-            # shard_slice=slices,
             module_class=self.module.__class__.__name__,
             is_grad=is_grad,
         )  # TODO: add info of whether from module with input rewritten.
@@ -421,8 +419,6 @@ class ParamLogHook:
             tensor=grad.detach().cpu(),
             canonical_name=canonical_grad_name,
             shape=ShardSlice(self.tp_slice, self.full_shape),
-            # full_shape=self.full_shape,
-            # shard_slice=self.tp_slice,
             is_grad=True,
         )
         log_tensor(canonical_grad_name, "g_param", tensor_info)

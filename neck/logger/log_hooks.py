@@ -1,4 +1,5 @@
-from typing import List, Callable
+from typing import Callable
+from neck.structs import TensorInfo
 from neck import CONFIG
 
 """
@@ -7,12 +8,12 @@ example, we undo the effect of divided by num_microbatches in pipeline parallel
 for Megatron-LM.
 """
 
-GRAD_LOG_HOOKS: List[Callable] = []
+LOG_HOOKS: list[ Callable[[TensorInfo, str],TensorInfo] ] = []
 
 
 if CONFIG.parallel.framework == "Megatron-LM":
-    from neck.canonical.megatron import grad_log_hook_megatron
-    GRAD_LOG_HOOKS.extend(grad_log_hook_megatron)
+    from neck.canonical.megatron import log_hook_megatron
+    LOG_HOOKS.extend(log_hook_megatron)
 else:
     raise NotImplementedError(
         f"Parallel framework {CONFIG.parallel.framework} is not supported."
@@ -20,5 +21,5 @@ else:
 
 
 __all__ = [
-    "GRAD_LOG_HOOKS",
+    "LOG_HOOKS",
 ]
