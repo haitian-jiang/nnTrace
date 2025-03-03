@@ -24,4 +24,5 @@ architecture:
 parallel:
   framework: "Megatron-LM"
   type: "TDPECSZ123V"  # Tensor, Data, Pipeline, Expert, Context, Sequence, Zero 1/2/3, virtual_pipeline?
-  num_microbatches: 1  # for megatron, because cannot get it from runtime
+  num_microbatches: 4  # for megatron, because cannot get it from runtime
+  sequence_parallel: True  # cannot get this from runtime

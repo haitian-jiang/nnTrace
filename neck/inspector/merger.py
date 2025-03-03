@@ -6,38 +6,43 @@ from loguru import logger as clog
 from neck.structs import TensorInfo, T_TYPE
 
 
-def _is_full_tensor(tensor_info: TensorInfo) -> bool:
-    """
-    Check if the tensor is full.
-    """
-    full_shape = tensor_info.shape.full_shape
-    shard_slice = tensor_info.shape.shard_slice
-    for dim, size in enumerate(full_shape):
-        if shard_slice[dim] != slice(0, size):
-            return False
-    return True
-
-
 def _merge_logs(
-        log_collections: dict[str, list[TensorInfo]]
+        log_collections: dict[str, list[TensorInfo]],
+        t_type: str
     ) -> dict[str, TensorInfo | list[TensorInfo]]:
     """
     Update the merged logs with the raw logs.
     """
-    merged_logs = {}
+    merged_logs: dict[str, TensorInfo | list[TensorInfo]] = {}
     for c_name, log_shards in log_collections.items():
         if len(log_shards) == 1:
             merged_logs[c_name] = log_shards[0]
             continue
-        if _is_full_tensor(log_shards[0]):  # list of tensor, should be all same
+        # --- below deals with list of tensors --- #
+        if log_shards[0].shape.is_full():  # either same or need finalize grad
+            # check if all are full tensors
             for info in log_shards[1:]:
-                assert _is_full_tensor(info)
-                if not torch.allclose(log_shards[0].tensor, info.tensor):
-                    clog.warning(f"Conflicting full tensors: {c_name}")
-                    print(log_shards[0].tensor.to(torch.float64).sum())
-                    print(info.tensor.to(torch.float64).sum())
-            merged_logs[c_name] = log_shards[0]
-        else:
+                assert info.shape.is_full(), \
+                    "Conflicting shapes for the same canonical name."
+            # check if the full tensors are the same
+            all_same = all(
+                torch.allclose(log_shards[0].tensor, info.tensor) 
+                for info in log_shards[1:]
+            )
+            if all_same:
+                merged_logs[c_name] = log_shards[0]
+            # check if need finalize grad
+            elif (
+                t_type == "g_param" and
+                all(
+                    info.extra.get("need_finalize_grad", False)
+                    for info in log_shards
+                )
+            ):
+                merged_logs[c_name] = TensorInfo.add_tensor_info(log_shards)
+            else:
+                clog.error(f"Conflicting full tensors: {c_name}, not merged.")
+        else:  # shard tensors
             merged_logs[c_name] = TensorInfo.merge_tensor_info(log_shards)
     return merged_logs
         
@@ -55,14 +60,14 @@ def _merge_distr_logs(log_path: str, t_type: str) -> None:
     raw_log_files = raw_log_dir.glob("*.pt")
     clog.info(f"Merging logs from {raw_log_dir}")
     
-    log_collections = defaultdict(list)
-    canonical_names = set()  # just for checking
+    log_collections: dict[str, list[TensorInfo]] = defaultdict(list)
+    canonical_names: set[str] = set()  # just for checking
     for raw_log_file in raw_log_files:  # e.g.: rank0.pt
-        raw_logs = torch.load(raw_log_file)
+        raw_logs: dict[str, TensorInfo] = torch.load(raw_log_file)
         for c_name, log in raw_logs.items():
             log_collections[c_name].append(log)
         canonical_names.update(raw_logs.keys())
-    merged_logs = _merge_logs(log_collections)
+    merged_logs = _merge_logs(log_collections, t_type)
     for canonical_name in canonical_names:
         assert canonical_name in merged_logs
     torch.save(merged_logs, merged_file_path)

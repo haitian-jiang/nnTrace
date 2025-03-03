@@ -6,7 +6,7 @@ import neck.random
 from neck.logger import log_tensor, register_hook, regist_batch_cnt_hook, ParamLogHook
 from neck import CONFIG
 from typing import Optional
-from neck.structs import get_annotation, TensorInfo, ShardSlice
+from neck.structs import get_annotation, TensorInfo, ShardSlice, ModuleAnnotation
 
 
 def _check_vp_rank(
@@ -86,6 +86,28 @@ def reinit_model(
             log_tensor(canon_param_name, "param", tensor_info)
 
 
+def filter_module_annotation(m_annotation: ModuleAnnotation) -> ModuleAnnotation:
+    """
+    Filter out the unnecessary fields parallel dim in the module annotation 
+    according to the opened parallel options.
+    Currently only sequence parallel dim info.
+
+    Args:
+        m_annotation: The module annotation to be filtered.
+
+    Returns:
+        The filtered module annotation.
+    """
+    assert m_annotation is not None, "m_annotation must be provided"
+    if CONFIG.parallel.get("sequence_parallel", None) is None:
+        if m_annotation.input:
+            m_annotation.input.sp_dim = None
+        if m_annotation.output:
+            m_annotation.output.sp_dim = None
+    return m_annotation
+
+
+
 def register_model_hooks(
         model: torch.nn.Module,
         vp_rank: Optional[int] = None,
@@ -100,6 +122,7 @@ def register_model_hooks(
         m_annotation = get_annotation(m_name, "module")
         if m_annotation is None:
             continue
+        m_annotation = filter_module_annotation(m_annotation)
         canon_mod_name = canonical.to_canonical_param_mod(m_name, vp_rank)
         register_hook(module, canon_mod_name, m_annotation, vp_rank)
 

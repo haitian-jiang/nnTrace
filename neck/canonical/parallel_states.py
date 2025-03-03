@@ -1,7 +1,10 @@
 import torch
 from omegaconf import OmegaConf
 from neck import CONFIG
-from .megatron import get_megatron_lm_parallel_rank
+from .megatron import get_megatron_lm_parallel_rank, get_megatron_parallel_options
+
+
+GOT_PARALLEL_STATES = False
 
 
 def get_parallel_states() -> OmegaConf:
@@ -23,32 +26,18 @@ def get_parallel_states() -> OmegaConf:
     CONFIG.parallel.size = {}
 
     if CONFIG.parallel.framework == "Megatron-LM":
-        return get_megatron_lm_parallel_rank()
+        results = get_megatron_lm_parallel_rank()
+        get_megatron_parallel_options()
+        global GOT_PARALLEL_STATES
+        GOT_PARALLEL_STATES = True
+        return results
     else:
         raise NotImplementedError(
             f"Parallel framework {CONFIG.parallel.framework} is not supported."
         )
 
 
-def get_prefix(
-        parallel_dim: set[str], 
-        vp_rank: int,
-    ) -> str:
-    assert parallel_dim is not None, "parallel_dim must be provided."
-    
-    for strategy in parallel_dim:
-        if strategy not in ["TP", "DP", "PP", "VP"]:
-            raise ValueError(f"Invalid parallel strategy {strategy}.")
-        
-    para_conf = get_parallel_states()
-    prefix = ""
-    if "TP" in parallel_dim and para_conf.size.tp_size and para_conf.size.tp_size > 1:
-        prefix += f"TP{para_conf.rank.tp_rank}/{para_conf.size.tp_size}|"
-    if "DP" in parallel_dim and para_conf.size.dp_size and para_conf.size.dp_size > 1:
-        prefix += f"DP{para_conf.rank.dp_rank}/{para_conf.size.dp_size}|"
-    if "PP" in parallel_dim and para_conf.size.pp_size and para_conf.size.pp_size > 1:
-        prefix += f"PP{para_conf.rank.pp_rank}/{para_conf.size.pp_size}|"
-    if "VP" in parallel_dim and para_conf.size.vp_size and para_conf.size.vp_size > 1:
-        prefix += f"VP{vp_rank}/{para_conf.size.vp_size}|"
-    
-    return prefix
+__all__ = [
+    "GOT_PARALLEL_STATES",
+    "get_parallel_states",
+]

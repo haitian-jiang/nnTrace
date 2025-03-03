@@ -31,6 +31,7 @@ class TensorAnnotation:
     """
     suffix: Optional[str] = None
     tp_dim: Optional[int] = None
+    sp_dim: Optional[int] = None
     full: Optional[str] = None
     slice: Optional[str] = None
 

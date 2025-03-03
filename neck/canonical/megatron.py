@@ -2,7 +2,8 @@ import torch
 from typing import Optional
 from omegaconf import OmegaConf
 from neck import CONFIG
-from neck.structs import TensorAnnotation
+from neck.structs import TensorAnnotation, TensorInfo
+
 
 
 def get_megatron_lm_parallel_rank() -> OmegaConf:
@@ -16,16 +17,34 @@ def get_megatron_lm_parallel_rank() -> OmegaConf:
     
     rank.world_rank = torch.distributed.get_rank()
     rank.dp_rank = parallel_state.get_data_parallel_rank()
+    rank.cp_rank = parallel_state.get_context_parallel_rank()
     rank.tp_rank = parallel_state.get_tensor_model_parallel_rank()
     rank.pp_rank = parallel_state.get_pipeline_model_parallel_rank()
 
     size.world_size = torch.distributed.get_world_size()
     size.dp_size = parallel_state.get_data_parallel_world_size()
+    size.cp_size = parallel_state.get_context_parallel_world_size()
     size.tp_size = parallel_state.get_tensor_model_parallel_world_size()
     size.pp_size = parallel_state.get_pipeline_model_parallel_world_size()
     size.vp_size = parallel_state.get_virtual_pipeline_model_parallel_world_size()
 
     return CONFIG.parallel
+
+
+def get_megatron_parallel_options() -> None:
+    """
+    Get the parallel options for Megatron-LM and store in CONFIG.parallel.
+    For example: tp, sp, dp, cp, pp, vp.
+    Need to run after get_megatron_lm_parallel_rank.
+    """
+    CONFIG.parallel.types = []
+    sizes = CONFIG.parallel.size
+    for xp in ["tp", "dp", "pp", "vp", "cp"]:
+        if sizes[f"{xp}_size"] and sizes[f"{xp}_size"] > 1:
+            CONFIG.parallel.types.append(xp)
+    sp = CONFIG.parallel.get("sequence_parallel", None)
+    if sp:
+        CONFIG.parallel.types.append("sp")
 
 
 def to_canonical_param_mod_megatron(
@@ -89,11 +108,18 @@ def infer_tp_slice_megatron(
         runtime_shape: tuple[int, ...],
         annotation: Optional[TensorAnnotation] = None,
     ) -> tuple[tuple[int, ...], tuple[slice, ...]]:
+    """
+    The mapping from TP / SP ranks to the slice of tensor in Megatron.
+    """
 
     if annotation is None:
         return runtime_shape, tuple(slice(0, dim) for dim in runtime_shape)
     
     tp_dim = annotation.tp_dim  # None if not sharded, otherwise int
+    sp_dim = annotation.sp_dim  # None if not sharded, otherwise 0
+    assert sp_dim is None or sp_dim == 0, "SP should shard the first dim."
+    assert not (tp_dim is not None and sp_dim is not None), \
+        "TP and SP should not shard the same tensor."
     tp_size = CONFIG.parallel.size.tp_size
     tp_rank = CONFIG.parallel.rank.tp_rank
 
@@ -101,6 +127,8 @@ def infer_tp_slice_megatron(
     full_shape = list(runtime_shape)
     if tp_dim is not None:
         full_shape[tp_dim] *= tp_size
+    if sp_dim is not None:
+        full_shape[sp_dim] *= tp_size
     full_shape = tuple(full_shape)
 
     # calculate the slice
@@ -108,6 +136,9 @@ def infer_tp_slice_megatron(
     if tp_dim is not None:
         slices[tp_dim] = slice(runtime_shape[tp_dim] * tp_rank, 
                             runtime_shape[tp_dim] * (tp_rank + 1))
+    if sp_dim is not None:
+        slices[sp_dim] = slice(runtime_shape[sp_dim] * tp_rank, 
+                            runtime_shape[sp_dim] * (tp_rank + 1))
 
     # checking, if full_shape and slices are proveded in annotation
     if annotation.full is not None or annotation.slice is not None:
