@@ -8,19 +8,8 @@ from tqdm import trange
 class TestRandomTensor(unittest.TestCase):
     reps = 1000
     trials = 10
+    backend = "pytorch"
 
-    @classmethod
-    def setUpClass(cls):
-        """Parse command-line arguments to control reps and trials."""
-        parser = argparse.ArgumentParser()
-        parser.add_argument("--reps", type=int, default=1000, help="Number of tensor tests")
-        parser.add_argument("--trials", type=int, default=10, help="Number of slice tests per tensor")
-        parser.add_argument("--backend", type=str, default="pytorch", help="Backend for tensor operations")
-        args, _ = parser.parse_known_args()
-
-        cls.reps = args.reps
-        cls.trials = args.trials
-        cls.backend = args.backend
 
     def setUp(self):
         """Set up the test environment by seeding the random number generator."""

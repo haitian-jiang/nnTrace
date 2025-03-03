@@ -33,7 +33,9 @@ class ShardSlice:
     
     def __repr__(self):
         # [0:4096, 2048:4096]
-        return f"[{', '.join(f'{s.start}:{s.stop}' for s in self.shard_slice)}]"
+        slc = f"[{', '.join(f'{s.start}:{s.stop}' for s in self.shard_slice)}]"
+        shp = str(self.full_shape).replace(" ", "")
+        return f"{slc}@{shp}"
     
     def __eq__(self, other):
         return (
@@ -127,7 +129,6 @@ class ShardSlice:
                     return False, None
         return True, adding_dim
 
-
     def has_overlap(self, other: "ShardSlice") -> bool:
         """
         Has overlap means has overlap in all dimensions.
@@ -137,6 +138,15 @@ class ShardSlice:
                 s1.start < s2.stop and s1.stop > s2.start or
                 s2.start < s1.stop and s2.stop > s1.start
             ):
+                return False
+        return True
+
+    def is_full(self) -> bool:
+        """
+        Check if the ShardSlice is the full tensor.
+        """
+        for dim, size in enumerate(self.full_shape):
+            if self.shard_slice[dim] != slice(0, size):
                 return False
         return True
 
