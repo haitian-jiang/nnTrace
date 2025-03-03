@@ -42,6 +42,8 @@ def _merge_logs(
                 merged_logs[c_name] = TensorInfo.add_tensor_info(log_shards)
             else:
                 clog.error(f"Conflicting full tensors: {c_name}, not merged.")
+                # TODO: Can decide what to store in the merged logs later.
+                merged_logs[c_name] = None  # to pass name checking
         else:  # shard tensors
             merged_logs[c_name] = TensorInfo.merge_tensor_info(log_shards)
     return merged_logs
