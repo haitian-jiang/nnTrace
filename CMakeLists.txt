@@ -51,8 +51,8 @@ if (CMAKE_SYSTEM_NAME MATCHES "Linux")
     target_link_libraries(${PROJECT_NAME} PRIVATE TBB::tbb)
 endif()
 
-find_package(OpenMP REQUIRED)
-target_link_libraries(${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX)
+# find_package(OpenMP REQUIRED)
+# target_link_libraries(${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX)
 
 # Link PyTorch to the module
 target_link_libraries(${PROJECT_NAME} PRIVATE ${TORCH_LIBRARIES})

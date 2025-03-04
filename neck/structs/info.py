@@ -1,4 +1,5 @@
 import torch
+from collections import defaultdict
 from dataclasses import dataclass, field
 from .slices import ShardSlice
 from loguru import logger as clog
@@ -52,30 +53,51 @@ class TensorInfo:
         Have this additional checking just in case, making the code no crash.
         """
         # ShardSlice as key, store a list of TensorInfo with same ShardSlice.
-        info_dict = {}
+        multi_info_dict: dict[ShardSlice, list[TensorInfo]] = defaultdict(list)
         for info in t_infos:
             shard = info.shape
-            zero = torch.zeros_like(info.tensor)
-            if shard not in info_dict:
-                info_dict[shard] = info
-            elif torch.allclose(info_dict[shard].tensor, info.tensor):
-                # clog.info(f"Multiple tensors for the same shard."
-                #           f"Same value, abandon one: {info.canonical_name}")
+            multi_info_dict[shard].append(info)
+        
+        # Merge the multiple grads for each shard, store the single TensorInfo.
+        # If all grads are the same, keep one. 
+        # If one is zero, abandon it.
+        # If different and need_finalize_grad, add them. 
+        # Otherwise, log error.
+        info_dict = {}
+        for shard, infos in multi_info_dict.items():
+            assert len(infos) > 1, "Should have multiple grads for each shard."
+            # all are the same, keep one.
+            if all(
+                torch.allclose(infos[0].tensor, info.tensor) 
+                for info in infos[1:]
+            ):
+                info_dict[shard] = infos[0]
                 continue
-            elif torch.allclose(info.tensor, zero):
-                clog.info(f"Multiple tensors for the same shard. "
-                          f"One is zero, abandon it: {info.canonical_name}")
-            elif torch.allclose(info_dict[shard].tensor, zero):
-                clog.info(f"Multiple tensors for the same shard. "
-                          f"One is zero, abandon it: {info.canonical_name}")
-                info_dict[shard] = info
-            else: # Same shard, different grads, shouldn't happen. But add them.
-                # TODO: check if need finalize grad (for PP, embedding)
-                print(info_dict[shard].tensor.to(torch.float64).sum())
-                print(info.tensor.to(torch.float64).sum())
-                clog.warning(f"Multiple tensors for the same shard. "
-                             f"Different value, add them: {info.canonical_name}")
-                info_dict[shard].tensor += info.tensor
+
+            # filter out the zero tensor
+            zero = torch.zeros_like(infos[0].tensor)
+            non_zero_infos = [
+                info for info in infos 
+                if not torch.allclose(info.tensor, zero)
+            ]
+
+            # Only one non-zero tensor, use it.
+            if len(non_zero_infos) == 1:
+                info_dict[shard] = non_zero_infos[0]
+                continue
+
+            # More than one non-zero tensor, add them if allowed.
+            if all(
+                info.extra.get("need_finalize_grad", False)
+                for info in non_zero_infos
+            ):
+                info_dict[shard] = TensorInfo.add_tensor_info(non_zero_infos)
+            else:  # conflicting tensors, log error
+                clog.error("Conflicting tensors for the same shard: "
+                           f"{infos[0].canonical_name} {shard}")
+                # TODO: put a placeholder, can change to all zero or all nan later.
+                info_dict[shard] = non_zero_infos[0]  
+        # end for
         return list(info_dict.values())
 
     @staticmethod
@@ -118,11 +140,10 @@ class TensorInfo:
     @staticmethod
     def add_tensor_info(t_infos: list["TensorInfo"]) -> "TensorInfo":
         """
-        Add the list of TensorInfo (all full shape) into one TensorInfo.
+        Add the list of TensorInfo into one TensorInfo, need to have the same
+        ShardSlice.
         Use tree-based reduction to minimize numerical error.
         """
-        assert all(t.shape.is_full() for t in t_infos), \
-            "Must finalize(add) full tensors."
         assert all(t.info_equal(t_infos[0]) for t in t_infos), \
             "Must finalize(add) tensors with same information."
         tmp_tensors = [t.tensor.to(torch.float64) for t in t_infos]

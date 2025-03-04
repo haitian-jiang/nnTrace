@@ -192,6 +192,13 @@ def _rescale_grad_for_pp_microbatch_hook(
     return grad_info
 
 
+_need_finalize_suffix = [
+    "layernorm", "layer_norm", 
+    "self_attention.linear_proj.bias", 
+    "mlp.linear_fc2.bias", 
+    "embedding.word_embeddings.weight",
+    "embedding.position_embeddings.weight",
+]
 def _finalize_model_grads_megatron(
         grad_info: TensorInfo, 
         t_type: str
@@ -205,15 +212,9 @@ def _finalize_model_grads_megatron(
     if t_type not in ["g_param"]:
         return grad_info
     c_name = grad_info.canonical_name
-    if (
-        "layernorm" in c_name or 
-        "layer_norm" in c_name or
-        "self_attention.linear_proj.bias" in c_name or
-        "mlp.linear_fc2.bias" in c_name
-    ):  # TODO: add embedding later
+    if any(suffix in c_name for suffix in _need_finalize_suffix):
         grad_info.extra["need_finalize_grad"] = True
     return grad_info
-
 
 
 log_hook_megatron = [_finalize_model_grads_megatron]  
