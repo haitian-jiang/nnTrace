@@ -42,7 +42,7 @@ linear_proj.bias:
   tp_dim: null
 
 linear_qkv.weight:
-  full: (hidden_size * 3, hidden_size)  # TODO: consider GQA
+  full: (hidden_size * 3, hidden_size)  # hint for GPT, no GQA
   slice: (hidden_size * 3 // tp_size, hidden_size)
   tp_dim: 0
 

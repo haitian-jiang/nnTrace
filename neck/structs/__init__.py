@@ -1,4 +1,4 @@
-from .info import TensorInfo, T_TYPE
+from .info import TensorInfo, TType
 from .slices import ShardSlice
 from .annotation import (
     TensorAnnotation, 
@@ -12,7 +12,7 @@ from .annotation import (
 __all__ = [
     "TensorInfo",
     "ShardSlice",
-    "T_TYPE",
+    "TType",
     "TensorAnnotation",
     "ModuleAnnotation",
     "param_annotations",

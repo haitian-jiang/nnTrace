@@ -2,7 +2,7 @@ import torch
 from typing import Optional
 from omegaconf import OmegaConf
 from neck import CONFIG
-from neck.structs import TensorAnnotation, TensorInfo
+from neck.structs import TensorAnnotation, TensorInfo, TType
 
 
 
@@ -165,7 +165,7 @@ def infer_tp_slice_megatron(
 
 def _rescale_grad_for_pp_microbatch_hook(
         grad_info: TensorInfo, 
-        t_type: str
+        t_type: TType,
     ) -> TensorInfo:
     """
     Log hook. Rescale the gradient tensor. In Megatron, during PP, the 
@@ -178,7 +178,7 @@ def _rescale_grad_for_pp_microbatch_hook(
     Returns:
         The original gradient tensor.
     """
-    if t_type not in ["g_activ", "g_param"]:
+    if t_type not in [TType.g_activ, TType.g_param]:
         return grad_info
     # only for grad obtained by torch hooks
     try:
@@ -201,7 +201,7 @@ _need_finalize_suffix = [
 ]
 def _finalize_model_grads_megatron(
         grad_info: TensorInfo, 
-        t_type: str
+        t_type: TType,
     ) -> TensorInfo:
     """
     Some gradients are synced before grad update in `finalize_model_grads`.
@@ -209,7 +209,7 @@ def _finalize_model_grads_megatron(
     These gradients has full shape, and has different value on different ranks.
     Need to leave information for the merger later to add them together.
     """
-    if t_type not in ["g_param"]:
+    if t_type not in [TType.g_param]:
         return grad_info
     c_name = grad_info.canonical_name
     if any(suffix in c_name for suffix in _need_finalize_suffix):

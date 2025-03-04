@@ -3,6 +3,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from .slices import ShardSlice
 from loguru import logger as clog
+from enum import Enum
 
 
 @dataclass
@@ -165,7 +166,30 @@ class TensorInfo:
         )
 
 
-T_TYPE = ("activ", "g_activ", "g_param", "param", "g_param_accum")
+class TType(str, Enum):
+    """
+    Enum for tensor types.  For compatability with python<=3.10, because StrEnum
+    is available for python>=3.11.
+
+    Attributes:
+        activ: Activation for each microbatch during forward.
+        g_activ: Gradients of activations for each microbatch during backward.
+        g_param: Gradients of parameters for each microbatch during backward.
+        param: Parameters upon reinitialization or after optimizer step.
+        g_param_main: Main gradients of parameters before optimizer step,
+                      accumulated for multiple microbatches (PP*DP).
+    """
+    activ = "activ"
+    g_activ = "g_activ"
+    g_param = "g_param"
+    param = "param"
+    g_param_main = "g_param_main"
+
+    def __str__(self):
+        return self.value
+    
+    def __repr__(self):
+        return self.value
 
 
-__all__ = ["TensorInfo", "T_TYPE"]
+__all__ = ["TensorInfo", "TType"]

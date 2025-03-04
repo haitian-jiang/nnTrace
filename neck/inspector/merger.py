@@ -3,12 +3,12 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Optional
 from loguru import logger as clog
-from neck.structs import TensorInfo, T_TYPE
+from neck.structs import TensorInfo, TType
 
 
 def _merge_logs(
         log_collections: dict[str, list[TensorInfo]],
-        t_type: str
+        t_type: TType,
     ) -> dict[str, TensorInfo | list[TensorInfo]]:
     """
     Update the merged logs with the raw logs.
@@ -33,7 +33,7 @@ def _merge_logs(
                 merged_logs[c_name] = log_shards[0]
             # check if need finalize grad
             elif (
-                t_type == "g_param" and
+                t_type is TType.g_param and
                 all(
                     info.extra.get("need_finalize_grad", False)
                     for info in log_shards
@@ -49,7 +49,7 @@ def _merge_logs(
     return merged_logs
         
 
-def _merge_distr_logs(log_path: str, t_type: str) -> None:
+def _merge_distr_logs(log_path: str, t_type: TType) -> None:
     """
     Merge the logs from different ranks into a single log file.
     Works for one specific tensor type.
@@ -76,14 +76,13 @@ def _merge_distr_logs(log_path: str, t_type: str) -> None:
     clog.info(f"Saved merged logs to {merged_file_path}")
 
 
-def merge_distr_logs(log_path: str, t_type: Optional[str] = None) -> None:
+def merge_distr_logs(log_path: str, t_type: Optional[TType] = None) -> None:
     """
     Merge the logs from different ranks into a single log file.
     Works for one specific tensor type.
     """
     if t_type is not None:
-        assert t_type in T_TYPE, f"Invalid tensor type: {t_type}"
         _merge_distr_logs(log_path, t_type)
     else:
-        for t_type in T_TYPE:
+        for t_type in TType:
             _merge_distr_logs(log_path, t_type)

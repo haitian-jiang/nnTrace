@@ -9,7 +9,7 @@ from omegaconf import OmegaConf
 from loguru import logger as clog
 from neck import CONFIG
 from neck.canonical import get_parallel_states
-from neck.structs import TensorInfo, T_TYPE
+from neck.structs import TensorInfo, TType
 from .log_hooks import LOG_HOOKS
 
 
@@ -17,8 +17,8 @@ LOGS = defaultdict(dict)
 
 
 def log_tensor(
-        canonical_name: str, 
-        t_type: Literal["activ", "g_activ", "g_param", "param"],
+        canonical_name: str,
+        t_type: TType,
         tensor_info: TensorInfo,
     ) -> None:
     """
@@ -26,7 +26,6 @@ def log_tensor(
     """
     if not CONFIG.logging.enable_logging:
         return
-    assert t_type in T_TYPE, f"Invalid tensor type {t_type}"
     assert tensor_info.tensor.device.type == "cpu", \
         "Tensors need to be moved to CPU before being logged"
 
@@ -44,10 +43,9 @@ def log_tensor(
 
 
 def save_logs(
-        t_type: str, 
-        run_dir: Path
+        t_type: TType, 
+        run_dir: Path,
     ) -> None:
-    assert t_type in T_TYPE, f"Invalid tensor type {t_type}"
     OmegaConf.save(CONFIG, run_dir / "config.yaml")
 
     world_size = get_parallel_states().size.world_size
@@ -76,7 +74,7 @@ def _exit_hook():
         suffix = "single" if world_size == 1 else "distr"
         run_dir = Path(CONFIG.logging.disk.log_path) / f"{run_name}-{suffix}"
         run_dir.mkdir(parents=True, exist_ok=True)
-        for t_type in T_TYPE:
+        for t_type in TType:
             save_logs(t_type, run_dir)
     except AssertionError:
         # in get_parallel_states, torch.distributed is not initialized
