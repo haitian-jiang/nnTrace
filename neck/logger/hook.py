@@ -189,19 +189,30 @@ class BwdPreLogHook(ModuleHookBase):
     closer to loss, so must be executed before the rewrite hook.
     Use it only when necessary.
     """
+    def _log_grad_output(self, grad: torch.Tensor, idx: int) -> None:
+        canon_grad_name = self.get_canon_act_grad_name("output", idx, 
+                                                       is_grad=True)
+        tensor_info = self.get_tensor_info(grad, canon_grad_name, True)
+        log_tensor(canon_grad_name, TType.g_activ, tensor_info)
+
     def __call__(
         self, 
         module: torch.nn.Module,
         grad_output: tuple[torch.Tensor],
     ) -> None:
+        if self.m_annotation.output_idx is not None:
+            idx = self.m_annotation.output_idx
+            grad = grad_output[idx]
+            assert isinstance(grad, torch.Tensor), \
+                f"Got {type(grad)} grad_output in {self.canon_mod_name}"
+            self._log_grad_output(grad, idx)
+            return
         for idx, grad in enumerate(grad_output):
             if grad is None:
                 continue
-            assert isinstance(grad, torch.Tensor), f"bwd pre hook get non tensor: {type(grad)}"
-            canon_grad_name = self.get_canon_act_grad_name("output", idx, 
-                                                           is_grad=True)
-            tensor_info = self.get_tensor_info(grad, canon_grad_name, True)
-            log_tensor(canon_grad_name, TType.g_activ, tensor_info)
+            assert isinstance(grad, torch.Tensor), \
+                f"bwd pre hook get non tensor: {type(grad)}"
+            self._log_grad_output(grad, idx)
 
 
 class BwdPreRewriteHook(ModuleHookBase):
@@ -341,6 +352,9 @@ def register_hook(
             prepend=True
         )
 
+    # TODO: here uses BwdPreLogHook not correctly, but actually need to have 
+    # a new class of BwdPostLogOutputHook, 
+    # and change the current BwdPostLogHook to BwdPostLogInputHook
     if annotation.grad.get("output", None):
         assert annotation.output is not None, \
             f"Cannot log output without tensor annotation: {canon_mod_name}"

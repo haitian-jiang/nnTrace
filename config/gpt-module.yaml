@@ -40,7 +40,7 @@ self_attention.linear_proj:
   output:
     tp_dim: null
     sp_dim: 0
-  output_idx: 0
+  output_idx: 0  # 1 is output_bias, directly copied from self.bias
   grad:
     output: True
 
@@ -59,7 +59,7 @@ pre_mlp_layernorm:
 mlp.linear_fc1:  # if record input, then input has sp dim 0
   output: 
     tp_dim: -1  # (seq_len, batch_size, hidden_size)
-  output_idx: 0
+  output_idx: 0  # 1 is output_bias
   grad:
     output: True
 
@@ -69,7 +69,7 @@ mlp.linear_fc2:
   output:
     tp_dim: null
     sp_dim: 0
-  output_idx: 0
+  output_idx: 0  # 1 is output_bias
   grad:
     input: True
     output: True
