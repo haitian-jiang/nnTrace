@@ -3,10 +3,21 @@ import torch
 import torch.nn as nn
 import neck.canonical as canonical
 import neck.random
-from neck.logger import log_tensor, register_hook, regist_batch_cnt_hook, ParamLogHook
+from neck.logger import (
+    log_tensor, 
+    register_hook, 
+    regist_batch_cnt_hook, 
+    ParamLogHook,
+)
 from neck import CONFIG
 from typing import Optional
-from neck.structs import get_annotation, TensorInfo, ShardSlice, ModuleAnnotation
+from neck.structs import (
+    get_annotation, 
+    TensorInfo, 
+    ShardSlice, 
+    ModuleAnnotation,
+    TType,
+)
 
 
 def _check_vp_rank(
@@ -83,7 +94,7 @@ def reinit_model(
                 canonical_name=canon_param_name,
                 shape=ShardSlice(tp_slice, full_shape),
             )
-            log_tensor(canon_param_name, "param", tensor_info)
+            log_tensor(canon_param_name, TType.param, tensor_info)
 
 
 def filter_module_annotation(m_annotation: ModuleAnnotation) -> ModuleAnnotation:

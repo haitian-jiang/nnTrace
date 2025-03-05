@@ -1,7 +1,13 @@
 import torch
 from collections import defaultdict
 from typing import Literal
-from neck.structs import TensorAnnotation, ModuleAnnotation, TensorInfo, ShardSlice
+from neck.structs import (
+    TensorAnnotation, 
+    ModuleAnnotation, 
+    TensorInfo, 
+    ShardSlice,
+    TType,
+)
 from .logger import log_tensor
 from neck import CONFIG
 import neck.canonical as canonical
@@ -38,10 +44,10 @@ class ModuleHookBase:
         # fwd pre hook: input, fwd post hook: output
         assert i_o_ in ("input", "output"), "Invalid input/output type"
         if is_grad:
-            type_ = f"g_activ"
+            t_type = TType.g_activ
             called_times = _bwd_pass_cnt[self.vp_rank]
         else:
-            type_ = f"activ"
+            t_type = TType.activ
             called_times = _fwd_pass_cnt[self.vp_rank]
 
         g_batch_id = canonical.calc_global_batch_id(
@@ -50,7 +56,7 @@ class ModuleHookBase:
             self.dp_rank,
         )
 
-        return f"batch.{g_batch_id}|{self.canon_mod_name}|{type_}.{i_o_}.{idx}"
+        return f"batch.{g_batch_id}|{self.canon_mod_name}|{t_type}.{i_o_}.{idx}"
 
     def get_tensor_info(
             self, 
@@ -99,14 +105,14 @@ class FwdPreLogHook(ModuleHookBase):
                 "fwd_pre_log expects a tensor"
             canon_act_name = self.get_canon_act_grad_name("input", idx)
             tensor_info = self.get_tensor_info(activation, canon_act_name)
-            log_tensor(canon_act_name, "activ", tensor_info)
+            log_tensor(canon_act_name, TType.activ, tensor_info)
         else:
             for idx, activation in enumerate(args):
                 if not isinstance(activation, torch.Tensor):
                     continue
                 canon_act_name = self.get_canon_act_grad_name("input", idx)
                 tensor_info = self.get_tensor_info(activation, canon_act_name)
-                log_tensor(canon_act_name, "activ", tensor_info)
+                log_tensor(canon_act_name, TType.activ, tensor_info)
 
 
 class FwdPreRewriteHook(ModuleHookBase):
@@ -147,7 +153,7 @@ class FwdPostLogHook(ModuleHookBase):
     def _log_output(self, activation: torch.Tensor, idx: int = 0) -> None:
         canon_act_name = self.get_canon_act_grad_name("output", idx)
         tensor_info = self.get_tensor_info(activation, canon_act_name)
-        log_tensor(canon_act_name, "activ", tensor_info)
+        log_tensor(canon_act_name, TType.activ, tensor_info)
 
     def __call__(
             self, 
@@ -194,7 +200,7 @@ class BwdPreLogHook(ModuleHookBase):
             canon_grad_name = self.get_canon_act_grad_name("output", idx, 
                                                            is_grad=True)
             tensor_info = self.get_tensor_info(grad, canon_grad_name, True)
-            log_tensor(canon_grad_name, "g_activ", tensor_info)
+            log_tensor(canon_grad_name, TType.g_activ, tensor_info)
 
 
 class BwdPreRewriteHook(ModuleHookBase):
@@ -238,7 +244,7 @@ class BwdPostLogHook(ModuleHookBase):
             canon_grad_name = self.get_canon_act_grad_name("input", idx, 
                                                            is_grad=True)
             tensor_info = self.get_tensor_info(grad, canon_grad_name, True)
-            log_tensor(canon_grad_name, "g_activ", tensor_info)
+            log_tensor(canon_grad_name, TType.g_activ, tensor_info)
 
 
 def register_hook(
@@ -421,4 +427,4 @@ class ParamLogHook:
             shape=ShardSlice(self.tp_slice, self.full_shape),
             is_grad=True,
         )
-        log_tensor(canonical_grad_name, "g_param", tensor_info)
+        log_tensor(canonical_grad_name, TType.g_param, tensor_info)

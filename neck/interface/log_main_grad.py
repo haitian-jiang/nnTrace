@@ -2,7 +2,7 @@ import torch
 import neck.canonical as canonical
 from typing import Optional
 from .reinit_model import _check_vp_rank
-from neck.structs import get_annotation, TensorInfo, ShardSlice
+from neck.structs import get_annotation, TensorInfo, ShardSlice, TType
 from neck.logger import log_tensor
 
 
@@ -30,4 +30,4 @@ def log_main_grad(
             ShardSlice(tp_slice, full_shape),
             is_grad=True,
         )
-        log_tensor(canon_param_name, "g_param_accum", tensor_info)
+        log_tensor(canon_param_name, TType.g_param_main, tensor_info)

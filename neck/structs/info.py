@@ -16,7 +16,7 @@ class TensorInfo:
         canonical_name: -
         shape: -
         module_class: where the activ comes from, empty for weight tensors
-        is_grad: True for "g_activ" or "g_param" or "g_param_accum"
+        is_grad: True for "g_activ" or "g_param" or "g_param_main"
         extra: extra information, e.g., need finalize grad, if input rewriten,
                Need to be consistent with the inspector's merger.
                Allowed fields: 
