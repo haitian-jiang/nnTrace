@@ -42,6 +42,13 @@ class TensorInfo:
             self.extra == other.extra
         )
 
+    def __str__(self):
+        return f"\n{self.tensor}\n{self.canonical_name}\n{self.shape}\n" \
+               f"{self.module_class}\n{self.is_grad}\n{self.extra}\n"
+
+    def __repr__(self):
+        return self.__str__()
+
     @staticmethod
     def _multiple_grads_each_shard(t_infos: list["TensorInfo"]) -> "TensorInfo":
         """

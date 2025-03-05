@@ -192,6 +192,25 @@ def _rescale_grad_for_pp_microbatch_hook(
     return grad_info
 
 
+def _rescale_grad_for_loss_cp_rescale_hook(
+        grad_info: TensorInfo,
+        t_type: TType,
+    ) -> TensorInfo:
+    """
+    Log hook. Rescale the gradient tensor. In Megatron, if CP is enabled, the
+    loss tensor is multipled by the number of CP ranks, so the gradients are
+    inflated. This hook rescales the gradient tensor to compensate for that.
+    See Megatron's pretrain_gpt.py/@loss_fun.
+    """
+    if t_type not in [TType.g_activ, TType.g_param]:
+        return grad_info
+    # only for grad obtained by torch hooks
+    cp_size = CONFIG.parallel.size.cp_size
+    if cp_size > 1:
+        grad_info.tensor /= cp_size
+    return grad_info
+
+
 _need_finalize_suffix = [
     "layernorm", "layer_norm", 
     "self_attention.linear_proj.bias", 
@@ -219,7 +238,9 @@ def _finalize_model_grads_megatron(
 
 log_hook_megatron = [_finalize_model_grads_megatron]  
 if True:  # TODO: change to NO calculate-per-tok-loss
+    # NOTE: mostly cp_size will be a power of 2, so the division is exact.
     log_hook_megatron.append(_rescale_grad_for_pp_microbatch_hook)
+    log_hook_megatron.append(_rescale_grad_for_loss_cp_rescale_hook)
 
 
 __all__ = [
