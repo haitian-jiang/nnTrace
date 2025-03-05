@@ -14,8 +14,8 @@ class ShardSlice:
     """
     def __init__(
             self, 
-            shard_slice: Sequence[slice] | None, 
-            full_shape: Sequence[int]
+            full_shape: Sequence[int],
+            shard_slice: Optional[Sequence[slice]]=None, 
         ):
         """
         Args:
@@ -83,7 +83,7 @@ class ShardSlice:
             new_[dim] = slice(self[dim].start, other[dim].stop)
         else:
             new_[dim] = slice(other[dim].start, self[dim].stop)
-        return ShardSlice(new_, self.full_shape)
+        return ShardSlice(self.full_shape, new_)
 
     def __radd__(self, other: Union["ShardSlice", int]) -> "ShardSlice":
         """

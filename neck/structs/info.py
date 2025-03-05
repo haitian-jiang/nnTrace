@@ -133,7 +133,7 @@ class TensorInfo:
         return TensorInfo(
             tensor=result,
             canonical_name=t_infos[0].canonical_name,
-            shape=ShardSlice(None, full_shape),  # already checked completeness
+            shape=ShardSlice(full_shape),  # already checked completeness
             module_class=t_infos[0].module_class,
             is_grad=t_infos[0].is_grad,
         )

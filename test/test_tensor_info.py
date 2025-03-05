@@ -23,7 +23,7 @@ class TestShardSlice(unittest.TestCase):
                 tensors = [torch.rand(full_shape) for _ in range(num_tensors)]
                 tensor_infos = []
                 for t in tensors:
-                    t_info = TensorInfo(t, c_name, ShardSlice(None, full_shape))
+                    t_info = TensorInfo(t, c_name, ShardSlice(full_shape))
                     tensor_infos.append(t_info)
                 sum_tensor = sum(tensors).to(torch.float64)
                 sum_tensor_info = TensorInfo.add_tensor_info(tensor_infos)

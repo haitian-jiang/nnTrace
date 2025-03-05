@@ -60,16 +60,17 @@ class ModuleHookBase:
 
     def get_tensor_info(
             self, 
-            activation: torch.Tensor,
+            activ: torch.Tensor,
             canonical_name: str,
             is_grad: bool = False,
         ) -> TensorInfo:
-        full_shape, slices = canonical.infer_tp_slice(activation.shape, self.t_annotation)
-        # NOTE: no double checking of shape and slice here, could add if exists in annotation.
+        shape_n_slice = canonical.infer_tp_slice(activ.shape, self.t_annotation)
+        # NOTE: no double checking of shape and slice here, 
+        # could add if exists in annotation.
         return TensorInfo(
-            tensor=activation.detach().cpu(),
+            tensor=activ.detach().cpu(),
             canonical_name=canonical_name,
-            shape=ShardSlice(slices, full_shape),
+            shape=ShardSlice(*shape_n_slice),
             module_class=self.module.__class__.__name__,
             is_grad=is_grad,
         )  # TODO: add info of whether from module with input rewritten.
@@ -216,7 +217,8 @@ class BwdPreRewriteHook(ModuleHookBase):
         for idx, grad in enumerate(grad_output):
             if grad is None:
                 continue
-            assert isinstance(grad, torch.Tensor), f"bwd pre hook get non tensor: {type(grad)}"
+            assert isinstance(grad, torch.Tensor), \
+                f"bwd pre hook get non tensor: {type(grad)}"
             canon_grad_name = self.get_canon_act_grad_name("output", idx, 
                                                            is_grad=True)
             full_shape, slices = canonical.infer_tp_slice(grad.shape, 
@@ -240,7 +242,8 @@ class BwdPostLogHook(ModuleHookBase):
         for idx, grad in enumerate(grad_input):
             if grad is None:
                 continue
-            assert isinstance(grad, torch.Tensor), f"bwd post hook get non tensor {type(grad)}"
+            assert isinstance(grad, torch.Tensor), \
+                f"bwd post hook get non tensor {type(grad)}"
             canon_grad_name = self.get_canon_act_grad_name("input", idx, 
                                                            is_grad=True)
             tensor_info = self.get_tensor_info(grad, canon_grad_name, True)
@@ -424,7 +427,7 @@ class ParamLogHook:
         tensor_info = TensorInfo(
             tensor=grad.detach().cpu(),
             canonical_name=canonical_grad_name,
-            shape=ShardSlice(self.tp_slice, self.full_shape),
+            shape=ShardSlice(self.full_shape, self.tp_slice),
             is_grad=True,
         )
         log_tensor(canonical_grad_name, TType.g_param, tensor_info)

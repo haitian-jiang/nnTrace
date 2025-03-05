@@ -92,7 +92,7 @@ def reinit_model(
             tensor_info = TensorInfo(
                 tensor=new_param,
                 canonical_name=canon_param_name,
-                shape=ShardSlice(tp_slice, full_shape),
+                shape=ShardSlice(full_shape, tp_slice),
             )
             log_tensor(canon_param_name, TType.param, tensor_info)
 
