@@ -2,7 +2,14 @@ import torch
 from typing import Optional
 from omegaconf import OmegaConf
 from neck import CONFIG
-from neck.structs import TensorAnnotation, TensorInfo, TType
+from neck.structs import (
+    TensorAnnotation, 
+    TensorInfo, 
+    TType, 
+    NeckSlice,
+    NDSlice,
+    ShardNDSlices,
+)
 
 
 
@@ -105,15 +112,16 @@ def to_canonical_param_mod_megatron(
 
 
 def infer_tp_slice_megatron(
-        runtime_shape: tuple[int, ...],
+        runtime_shape: torch.Size,
         annotation: Optional[TensorAnnotation] = None,
     ) -> tuple[tuple[int, ...], tuple[slice, ...]]:
     """
     The mapping from TP / SP ranks to the slice of tensor in Megatron.
     """
 
-    if annotation is None:
-        return runtime_shape, tuple(slice(0, dim) for dim in runtime_shape)
+    if annotation is None:  # no sharding
+        return ShardNDSlices(runtime_shape)
+        # return runtime_shape, tuple(slice(0, dim) for dim in runtime_shape)
     
     tp_dim = annotation.tp_dim  # None if not sharded, otherwise int
     sp_dim = annotation.sp_dim  # None if not sharded, otherwise 0
@@ -129,16 +137,16 @@ def infer_tp_slice_megatron(
         full_shape[tp_dim] *= tp_size
     if sp_dim is not None:
         full_shape[sp_dim] *= tp_size
-    full_shape = tuple(full_shape)
+    full_shape = torch.Size(full_shape)
 
     # calculate the slice
-    slices = [slice(0, dim) for dim in runtime_shape]
+    ndslice = [NeckSlice(0, dim) for dim in runtime_shape]
     if tp_dim is not None:
-        slices[tp_dim] = slice(runtime_shape[tp_dim] * tp_rank, 
-                            runtime_shape[tp_dim] * (tp_rank + 1))
+        ndslice[tp_dim] = NeckSlice(runtime_shape[tp_dim] * tp_rank, 
+                                   runtime_shape[tp_dim] * (tp_rank + 1))
     if sp_dim is not None:
-        slices[sp_dim] = slice(runtime_shape[sp_dim] * tp_rank, 
-                            runtime_shape[sp_dim] * (tp_rank + 1))
+        ndslice[sp_dim] = NeckSlice(runtime_shape[sp_dim] * tp_rank, 
+                                   runtime_shape[sp_dim] * (tp_rank + 1))
 
     # checking, if full_shape and slices are proveded in annotation
     if annotation.full is not None or annotation.slice is not None:
@@ -152,15 +160,18 @@ def infer_tp_slice_megatron(
     
     if annotation.full is not None:
         annotation_full_shape = eval(annotation.full, {}, _allowed_locals)
+        annotation_full_shape = torch.Size(annotation_full_shape)
         assert full_shape == annotation_full_shape, \
             f"Full shape mismatch: {full_shape} vs {annotation_full_shape}"
         
     if annotation.slice is not None:
         annotation_slice_shape = eval(annotation.slice, {}, _allowed_locals)
         assert runtime_shape == annotation_slice_shape, \
-            f"Slice mismatch: {slices} vs {annotation_slice_shape}"
-        
-    return full_shape, tuple(slices)
+            f"Slice mismatch: {ndslice} vs {annotation_slice_shape}"
+    
+    slice_map = {NDSlice(runtime_shape): NDSlice(ndslice)}
+    return ShardNDSlices(full_shape, runtime_shape, slice_map)
+    # return full_shape, tuple(ndslice)
 
 
 def _rescale_grad_for_pp_microbatch_hook(

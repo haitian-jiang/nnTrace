@@ -1,3 +1,4 @@
+import torch
 from typing import Optional
 from neck import CONFIG
 from neck.structs import TensorAnnotation
@@ -24,7 +25,7 @@ def to_canonical_param_mod(
 
 
 def infer_tp_slice(
-        runtime_shape: tuple[int, ...],
+        runtime_shape: torch.Size,
         annotation: Optional[TensorAnnotation] = None,
     ) -> tuple[tuple[int, ...], tuple[slice, ...]]:
     """

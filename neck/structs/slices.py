@@ -1,5 +1,69 @@
-from typing import Sequence, Optional, Union
+from typing import Sequence, Optional, Union, Iterable
 import torch
+
+
+class NeckSlice:  # immutable slice, replace `slice`, not support step yet.
+    def __init__(self, start: int, stop: int):
+        assert 0 <= start < stop
+        self.start = start
+        self.stop = stop
+
+    def __eq__(self, other):
+        return self.start == other.start and self.stop == other.stop
+    
+    def __lt__(self, other):
+        return (self.start, self.stop) < (other.start, other.stop)
+    
+    def __gt__(self, other):
+        return (self.start, self.stop) > (other.start, other.stop)
+    
+    def __le__(self, other):
+        return (self.start, self.stop) <= (other.start, other.stop)
+    
+    def __ge__(self, other):
+        return (self.start, self.stop) >= (other.start, other.stop)
+    
+    def __hash__(self):
+        return hash((self.start, self.stop))
+
+    def __repr__(self):
+        return f"{self.start}:{self.stop}"
+    
+    def __str__(self):
+        return self.__repr__()
+    
+    @property
+    def pyslice(self) -> slice:
+        return slice(self.start, self.stop)
+
+
+class NDSlice(tuple):
+    def __new__(
+            cls,
+            *args: NeckSlice | torch.Size | Iterable[NeckSlice]
+        ):
+        if len(args) == 1:
+            if isinstance(args[0], NeckSlice):
+                nd_slice = (args[0], )
+            elif isinstance(args[0], torch.Size):  # order of elif matters!
+                nd_slice = tuple(NeckSlice(0, dim) for dim in args[0])
+            elif isinstance(args[0], Iterable):  # Iterable[NeckSlice]
+                nd_slice = tuple(args[0])
+            else:
+                raise ValueError(f"Wrong input {args}")
+        else:  # args is tuple[NeckSlice] already
+            nd_slice = args
+        return super().__new__(cls, nd_slice)
+    
+    def __repr__(self):
+        return f"[{', '.join(repr(s) for s in self)}]"
+
+    def __str__(self):
+        return self.__repr__()
+    
+    @property
+    def pyslice(self) -> tuple[slice, ...]:
+        return tuple(s.pyslice for s in self)
 
 
 class ShardSlice:
@@ -166,4 +230,143 @@ class ShardSlice:
         return mask
 
 
-__all__ = ["ShardSlice"]
+class ShardNDSlices:
+    def __init__(
+            self, 
+            full_shape: Sequence[int],
+            local_shape: Optional[Sequence[int]] = None,
+            slice_map: Optional[dict[NDSlice, NDSlice]] = None,
+        ):
+
+        # deal with full shape initialization
+        if slice_map is None:  # a full slice
+            local_shape = full_shape  # overwrite the local shape
+            full_slice = NDSlice(NeckSlice(0, dim) for dim in full_shape)
+            slice_map = {full_slice: full_slice}
+
+        self._check_init_input(full_shape, local_shape, slice_map)
+        self.full_shape = torch.Size(full_shape)
+        self.local_shape = torch.Size(local_shape)
+        self.slice_map = slice_map
+
+    @staticmethod
+    def _check_init_input(
+            full_shape: Sequence[int], 
+            local_shape: Sequence[int], 
+            slice_map: dict[NDSlice, NDSlice],
+        ):
+        assert len(full_shape) == len(local_shape), "Expect same dim."
+        for local_, global_ in slice_map.items():
+            # same dim
+            assert len(local_) == len(global_) == len(full_shape)
+            # no out of bound
+            for s, dim in zip(local_, local_shape):
+                assert 0 <= s.start < s.stop <= dim, "Local slice out of bound."
+            for s, dim in zip(global_, full_shape):
+                assert 0 <= s.start < s.stop <= dim, "Global slice out of bound."
+        
+        # check the local slices covers cover the whole local_shape
+        mask = torch.zeros(local_shape, dtype=torch.int8)
+        for local_ in slice_map.keys():
+            mask[local_.pyslice] += 1
+        assert torch.all(mask == 1), "Local slices wrong."
+
+        # check the global slices has no overlap
+        mask = torch.zeros(full_shape, dtype=torch.int8)
+        for global_ in slice_map.values():
+            mask[global_.pyslice] += 1
+        assert torch.all(mask <= 1), "Global slices overlap."
+
+    def __eq__(self, other: "ShardNDSlices") -> bool:
+        return (
+            self.full_shape == other.full_shape and 
+            self.local_shape == other.local_shape and 
+            self.slice_map == other.slice_map
+        )
+    
+    def __len__(self):
+        return len(self.full_shape)
+
+
+    def __hash__(self):
+        slices = tuple(sorted(self.slice_map.items()))
+        return hash(
+            (self.full_shape, self.local_shape, slices)
+        )
+
+    def __repr__(self):
+        if len(self.slice_map) == 1:
+            # [0:4096, 2048:4096]@(4096, 4096)
+            shard_slice: NDSlice = list(self.slice_map.values())[0]
+            shp = f"({', '.join(str(dim) for dim in self.full_shape)})"
+            return f"{shard_slice}@{self.full_shape}"
+        # check if the pieces scattered in one dimension
+        # [0:256⨁768:1024, 0:1024]@(1024, 1024)
+        # True most of the time
+        slices: list[NDSlice] = sorted(self.slice_map.values())
+        if (d := self._all_same_but_one_dim(list(self.slice_map.values()))) is not None:
+            inner = [str(_1d) for _1d in slices[0]]  # ["0:256", "0:1024"]
+            inner[d] = "⨁".join(str(s[d]) for s in slices)  # "0:256⨁768:1024"
+            slc = f"[{', '.join(inner)}]"
+            shp = f"({', '.join(str(dim) for dim in self.full_shape)})"
+            return f"{slc}@{shp}"
+        else: # join each of them one by one, for 2D+ TP or partitions
+            # [0:4, 0:4]⨁[4:8, 4:8]@(8, 8)
+            slc = "⨁".join(str(subslice) for subslice in slices)
+            shp = f"({', '.join(str(dim) for dim in self.full_shape)})"
+            return f"{slc}@{shp}"
+
+    def __str__(self):
+        return self.__repr__()
+    
+    @staticmethod
+    def _all_same_but_one_dim(slices: list["NDSlice"]) -> Optional[int]:
+        """
+        Check if the subslices are scattered in only one dimension.
+        If true, return the dimension. Otherwise, return None.
+        """
+        ndim = len(slices[0])
+        assert all(len(s) == ndim for s in slices), "Different dims."
+        sub_slices = sorted(slices)
+        are_same = [False] * ndim
+        for dim in range(ndim):
+            are_same[dim] = all(
+                s[dim] == sub_slices[0][dim] for s in sub_slices
+            )
+        if sum(are_same) == ndim - 1:
+            return are_same.index(False)
+        return None
+
+    def is_full(self) -> bool:
+        # local slice coverage is checked in the initialization
+        return self.local_shape == self.full_shape
+    
+    def get_eigen_mask(self) -> torch.Tensor:
+        mask = torch.zeros(self.full_shape, dtype=torch.int8)
+        for global_ in self.slice_map.values():
+            mask[global_.pyslice] += 1
+        return mask
+    
+    def has_overlap(self, other: "ShardNDSlices") -> bool:
+        assert self.full_shape == other.full_shape
+        mask = self.get_eigen_mask() + other.get_eigen_mask()
+        return torch.any(mask > 1)
+
+    @staticmethod
+    def get_completeness(shards: Sequence["ShardNDSlices"]) -> torch.Tensor:
+        """
+        Check if the list of ShardNDSlices is complete, i.e., covers the full
+        tensor.
+        """
+        full_shape = shards[0].full_shape
+        for shard in shards:
+            assert shard.full_shape == full_shape
+
+        mask = torch.zeros(full_shape, dtype=torch.int8)
+        for shard in shards:
+            mask += shard.get_eigen_mask()
+        return mask
+
+
+
+__all__ = ["ShardSlice", "ShardNDSlices", "NeckSlice", "NDSlice"]
