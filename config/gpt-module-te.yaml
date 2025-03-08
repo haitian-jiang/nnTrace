@@ -1,0 +1,112 @@
+# module_name:
+#   turnoff: False
+#   fused: null or list of module_name
+#   input:  # tensor annotation
+#     tp_dim: null or int
+#   output:  # tensor annotation
+#     tp_dim: null or int
+#   rewrite_input: False
+#   rewrite_grad_output: False
+#   input_idx: null
+#   output_idx: null  # null means only one output, so it will be a tensor.
+#   grad: null or 
+#     input: bool
+#     output: bool
+
+input_layernorm:  # such layernorms are Identity if uses Transformer Engine
+  turnoff: True  # If it is Identity (like in TE), set turnoff to True
+  input:
+    tp_dim: null
+    sp_dim: 0
+  output:
+    tp_dim: null
+    sp_dim: 0
+  grad:
+    input: True
+    output: True
+
+self_attention.linear_qkv:
+  fusion:  # NOTE: string replacement, use full name and share common prefix
+    - input_layernorm
+    - self_attention.linear_qkv
+  input:
+    tp_dim: null
+    sp_dim: 0
+  output:
+    tp_dim: -1
+  grad:
+    input: True
+    output: True
+
+self_attention.core_attention: 
+  input:  # Q, K, V, [seq, bs, n_head, d_head]
+    tp_dim: -2  # share the same tp dim, can make it finer by having a list
+  output:
+    tp_dim: -1
+  input_idx: [0, 1, 2]  # Q, K, V, mask, and we don't want mask
+  grad:
+    input: True
+    output: True
+
+self_attention.linear_proj:
+  output:
+    tp_dim: null
+    sp_dim: 0
+  output_idx: 0  # 1 is output_bias, directly copied from self.bias
+  grad:
+    output: True
+
+
+pre_mlp_layernorm:
+  turnoff: True
+  input: 
+    tp_dim: null
+    sp_dim: 0
+  output: 
+    tp_dim: null
+    sp_dim: 0
+  grad:
+    input: True
+    output: True
+
+mlp.linear_fc1:  # if record input, then input has sp dim 0
+  fusion:
+    - pre_mlp_layernorm
+    - mlp.linear_fc1
+  output: 
+    tp_dim: -1  # (seq_len, batch_size, hidden_size)
+  output_idx: 0  # 1 is output_bias
+  grad:
+    output: True
+
+mlp.linear_fc2:
+  input:
+    tp_dim: -1
+  output:
+    tp_dim: null
+    sp_dim: 0
+  output_idx: 0  # 1 is output_bias
+  grad:
+    input: True
+    output: True
+
+layers.\d:
+  output:
+    tp_dim: null
+    sp_dim: 0
+  output_idx: 0
+  grad:
+    output: True
+
+word_embeddings:
+  output:
+    tp_dim: null
+
+embedding:
+  output:
+    tp_dim: null
+    sp_dim: 0
+
+module.module:
+  input:
+    tp_dim: null

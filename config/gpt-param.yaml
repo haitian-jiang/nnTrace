@@ -20,33 +20,34 @@ input_layernorm.bias:
   tp_dim: null
 
 
-# self_attention.*
-linear_qkv.layer_norm_weight:
+self_attention.linear_qkv.layer_norm_weight:
+  canonical_suffix: input_layernorm.weight  # string subsitution, so make sure prefix are the same
   full: (hidden_size,)
   slice: (hidden_size,)
   tp_dim: null
 
-linear_qkv.layer_norm_bias:
+self_attention.linear_qkv.layer_norm_bias:
+  canonical_suffix: input_layernorm.bias
   full: (hidden_size,)
   slice: (hidden_size,)
   tp_dim: null
 
-linear_proj.weight:
+self_attention.linear_proj.weight:
   full: (hidden_size, hidden_size)
   slice: (hidden_size, hidden_size // tp_size)
   tp_dim: 1
 
-linear_proj.bias:
+self_attention.linear_proj.bias:
   full: (hidden_size,)
   slice: (hidden_size,)
   tp_dim: null
 
-linear_qkv.weight:
+self_attention.linear_qkv.weight:
   full: (hidden_size * 3, hidden_size)  # hint for GPT, no GQA
   slice: (hidden_size * 3 // tp_size, hidden_size)
   tp_dim: 0
 
-linear_qkv.bias:
+self_attention.linear_qkv.bias:
   full: (hidden_size * 3,)
   slice: (hidden_size * 3 // tp_size,)
   tp_dim: 0
@@ -64,32 +65,34 @@ pre_mlp_layernorm.bias:
 
 
 # mlp.*
-linear_fc1.layer_norm_weight:  # name in transformer_engine
+mlp.linear_fc1.layer_norm_weight:  # name in transformer_engine
+  canonical_suffix: pre_mlp_layernorm.weight
   full: (hidden_size,)
   slice: (hidden_size,)
   tp_dim: null
 
-linear_fc1.layer_norm_bias:
+mlp.linear_fc1.layer_norm_bias:
+  canonical_suffix: pre_mlp_layernorm.bias
   full: (hidden_size,)
   slice: (hidden_size,)
   tp_dim: null
 
-linear_fc1.weight:
+mlp.linear_fc1.weight:
   full: (hidden_size * 4, hidden_size)
   slice: (hidden_size * 4 // tp_size, hidden_size)
   tp_dim: 0
 
-linear_fc1.bias:
+mlp.linear_fc1.bias:
   full: (hidden_size * 4,)
   slice: (hidden_size * 4 // tp_size,)
   tp_dim: 0
 
-linear_fc2.weight:
+mlp.linear_fc2.weight:
   full: (hidden_size, hidden_size * 4)
   slice: (hidden_size, hidden_size * 4 // tp_size)
   tp_dim: 1
 
-linear_fc2.bias:
+mlp.linear_fc2.bias:
   full: (hidden_size,)
   slice: (hidden_size,)
   tp_dim: null

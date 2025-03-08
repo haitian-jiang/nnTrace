@@ -1,9 +1,9 @@
 import math
-import yaml
 import torch
 import torch.nn as nn
 import neck.canonical as canonical
 import neck.random
+from loguru import logger as clog
 from neck.logger import (
     log_tensor, 
     register_hook, 
@@ -15,6 +15,7 @@ from typing import Optional
 from neck.structs import (
     get_annotation, 
     TensorInfo, 
+    TensorAnnotation,
     ModuleAnnotation,
     TType,
 )
@@ -62,21 +63,25 @@ def reinit_model(
         hasattr(model, "state_dict")
     ), "model has not been initialized"
 
-    with open("/home/ubuntu/repos/NECK/config/gpt-name-map.yaml") as f:
-        name_mapping = yaml.safe_load(f)
-    # prefix = canonical.get_prefix(set(("TP", "PP", "VP")), vp_rank)
     for name, param in model.named_parameters():
-        canon_param_name = canonical.to_canonical_param_mod(name, vp_rank)
-        annotation = get_annotation(name, "param")
+        if "layer_norm" in name or "layernorm" in name:
+            continue
+        # canonical parameter of this framework, need to convert to fw agnostic
+        fw_canon_param_name = canonical.to_canonical_param_mod(name, vp_rank)
+        annotation: TensorAnnotation = get_annotation(name, "param")
         assert annotation is not None, \
             f"Annotation not found for {name}"
+        # get framework agnostic canon_param_name
+        # currently only supports replacement for Megatron and TransformerEngine
+        # TODO: can have a separate function to handle this and support regex
+        if annotation.canonical_suffix is not None:
+            canon_param_name = fw_canon_param_name.replace(
+                annotation.suffix, annotation.canonical_suffix
+            )
+        else:  
+            canon_param_name = fw_canon_param_name
+            fw_canon_param_name = None  # work as arg for ParamLogHook
         shard_slice = canonical.infer_tp_slice(param.shape, annotation)
-
-        # # TODO: work around
-        # for suffix in name_mapping:
-        #     if name.endswith(suffix):
-        #         canon_param_name = canon_param_name.replace(suffix, name_mapping[suffix])
-        #         break
 
         # reinitialize the parameter
         new_param = neck.random.rand(canon_param_name, shard_slice)
@@ -86,11 +91,13 @@ def reinit_model(
         new_param = new_param.to(param.dtype)
         param.data = new_param.data.to(param.device)
 
+
         param.register_hook(
             ParamLogHook(
                 canon_param_name, 
                 vp_rank,
                 shard_slice,
+                fw_canon_param_name,  # None if not changed
             )
         )
 
@@ -136,8 +143,8 @@ def register_model_hooks(
     assert isinstance(vp_rank, int), "vp_rank must be an integer"
 
     for m_name, module in model.named_modules():
-        m_annotation = get_annotation(m_name, "module")
-        if m_annotation is None:
+        m_annotation: ModuleAnnotation = get_annotation(m_name, "module")
+        if m_annotation is None or m_annotation.turnoff:
             continue
         m_annotation = filter_module_annotation(m_annotation)
         canon_mod_name = canonical.to_canonical_param_mod(m_name, vp_rank)

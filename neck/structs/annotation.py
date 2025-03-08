@@ -30,6 +30,7 @@ class TensorAnnotation:
           shape and the tp_dim.
     """
     suffix: Optional[str] = None
+    canonical_suffix: Optional[str] = None
     tp_dim: Optional[int] = None
     sp_dim: Optional[int] = None
     full: Optional[str] = None
@@ -58,6 +59,7 @@ class ModuleAnnotation:
         rewrite_input: Rewrite the input tensor with consistent value or not.
         rewrite_output: Rewrite the output tensor with consistent value or not.
     """
+    turnoff: bool = False
     suffix: Optional[str] = None
     input: Optional[TensorAnnotation] = None
     output: Optional[TensorAnnotation] = None
@@ -66,6 +68,7 @@ class ModuleAnnotation:
     rewrite_input: Optional[bool] = False
     rewrite_grad_output: Optional[bool] = False
     grad: Optional[OmegaConf] = None
+    fusion: Optional[list[str]] = None
 
     @classmethod
     def from_dict(cls, raw_annotation: OmegaConf) -> "ModuleAnnotation":
@@ -133,21 +136,15 @@ def get_annotation(
     else:
         raise ValueError(f"Annotation type {type} is not supported.")
     
-    # fast path for Megatron-LM parameters
-    if type == "param" and CONFIG.parallel.framework == "Megatron-LM":
-        # local_name: module.module.decoder.layers.23.self_attention.linear_qkv.weight
-        suffix = '.'.join(local_name.split(".")[-2:])  # suffix: linear_qkv.weight
-        return annotations.get(suffix, None)
-    else:
-        name_decomp = local_name.split(".")
-        for i, part in enumerate(name_decomp):
-            if part.isdigit():
-                name_decomp[i] = r"\d"
-                break
-        general_name = ".".join(name_decomp)  # module.module.decoder.layers.\d.self_attention
-        for suffix in annotations:
-            if general_name.endswith(suffix):
-                return annotations[suffix]
+    name_decomp = local_name.split(".")
+    for i, part in enumerate(name_decomp):
+        if part.isdigit():
+            name_decomp[i] = r"\d"
+            break
+    general_name = ".".join(name_decomp)  # module.module.decoder.layers.\d.self_attention
+    for suffix in annotations:
+        if general_name.endswith(suffix):
+            return annotations[suffix]
     return None
 
 

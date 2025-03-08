@@ -1,6 +1,6 @@
 import torch
 from collections import defaultdict
-from typing import Literal
+from typing import Literal, Optional
 from neck.structs import (
     TensorAnnotation, 
     ModuleAnnotation, 
@@ -56,7 +56,21 @@ class ModuleHookBase:
             self.dp_rank,
         )
 
-        return f"batch.{g_batch_id}|{self.canon_mod_name}|{t_type}.{i_o_}.{idx}"
+        # TODO: now is string replacement, could be more general like regex
+        module_name = self.canon_mod_name
+        if self.m_annotation.fusion is not None:
+            if i_o_ == "input":
+                module_name = module_name.replace(
+                    self.m_annotation.suffix, 
+                    self.m_annotation.fusion[0]
+                )
+            elif i_o_ == "output":
+                module_name = module_name.replace(
+                    self.m_annotation.suffix, 
+                    self.m_annotation.fusion[-1]
+                )
+
+        return f"batch.{g_batch_id}|{module_name}|{t_type}.{i_o_}.{idx}"
 
     def get_tensor_info(
             self, 
@@ -420,13 +434,15 @@ class ParamLogHook:
         self,
         canon_param_name: str,
         vp_rank: int,
-        shard_slice: ShardNDSlices
+        shard_slice: ShardNDSlices,
+        fw_canon_name: Optional[str] = None,
     ) -> None:
         self.canon_param_name = canon_param_name
         self.dp_rank = CONFIG.parallel.rank.dp_rank
         self.dp_size = CONFIG.parallel.size.dp_size
         self.vp_rank = vp_rank
         self.shard_slice = shard_slice
+        self.fw_canon_name = fw_canon_name
 
     def _get_canon_param_grad_name(self) -> str:
         g_batch_id = canonical.calc_global_batch_id(
@@ -446,5 +462,6 @@ class ParamLogHook:
             canonical_name=canonical_grad_name,
             shard_slice=self.shard_slice,
             is_grad=True,
+            extra = {"fw_canon_name": self.fw_canon_name},
         )
         log_tensor(canonical_grad_name, TType.g_param, tensor_info)
