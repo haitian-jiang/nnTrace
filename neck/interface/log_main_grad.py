@@ -22,7 +22,7 @@ def log_main_grad(
         annotation = get_annotation(name, "param")
         assert annotation is not None, \
             f"Annotation not found for {name}"
-        shard_slice = canonical.infer_tp_slice(param.shape, annotation)
+        shard_slice = canonical.infer_slice(param.shape, annotation)
         main_grad = param.main_grad.detach().cpu()  # for Megatron
         tensor_info = TensorInfo(
             main_grad,

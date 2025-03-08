@@ -111,7 +111,7 @@ def to_canonical_param_mod_megatron(
     return ".".join(name_decomp)
 
 
-def infer_tp_slice_megatron(
+def infer_slice_megatron(
         runtime_shape: torch.Size,
         annotation: Optional[TensorAnnotation] = None,
     ) -> ShardNDSlices:
@@ -257,6 +257,6 @@ if True:  # TODO: change to NO calculate-per-tok-loss
 __all__ = [
     "get_megatron_lm_parallel_rank",
     "to_canonical_param_mod_megatron",
-    "infer_tp_slice_megatron",
+    "infer_slice_megatron",
     "log_hook_megatron",
 ]

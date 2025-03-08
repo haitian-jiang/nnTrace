@@ -2,7 +2,7 @@ import torch
 from typing import Optional
 from neck import CONFIG
 from neck.structs import TensorAnnotation, ShardNDSlices
-from .megatron import to_canonical_param_mod_megatron, infer_tp_slice_megatron
+from .megatron import to_canonical_param_mod_megatron, infer_slice_megatron
 
 
 def to_canonical_param_mod(
@@ -24,7 +24,7 @@ def to_canonical_param_mod(
         )
 
 
-def infer_tp_slice(
+def infer_slice(
         runtime_shape: torch.Size,
         annotation: Optional[TensorAnnotation] = None,
     ) -> ShardNDSlices:
@@ -34,7 +34,7 @@ def infer_tp_slice(
     is the full shape and the slice.
     """
     if CONFIG.parallel.framework == "Megatron-LM":
-        return infer_tp_slice_megatron(runtime_shape, annotation)
+        return infer_slice_megatron(runtime_shape, annotation)
     else:
         raise NotImplementedError(
             f"Parallel framework {CONFIG.parallel.framework} is not supported."

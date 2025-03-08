@@ -81,7 +81,7 @@ def reinit_model(
         else:  
             canon_param_name = fw_canon_param_name
             fw_canon_param_name = None  # work as arg for ParamLogHook
-        shard_slice = canonical.infer_tp_slice(param.shape, annotation)
+        shard_slice = canonical.infer_slice(param.shape, annotation)
 
         # reinitialize the parameter
         new_param = neck.random.rand(canon_param_name, shard_slice)

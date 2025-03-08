@@ -78,7 +78,7 @@ class ModuleHookBase:
             canonical_name: str,
             is_grad: bool = False,
         ) -> TensorInfo:
-        shape_slice = canonical.infer_tp_slice(activ.shape, self.t_annotation)
+        shape_slice = canonical.infer_slice(activ.shape, self.t_annotation)
         # NOTE: no double checking of shape and slice here, 
         # could add if exists in annotation.
         return TensorInfo(
@@ -139,7 +139,7 @@ class FwdPreRewriteHook(ModuleHookBase):
     def _rewrite_input(self, tensor: torch.Tensor, idx: int) -> None:
         assert isinstance(tensor, torch.Tensor), "fwd_pre_rewrite expects a tensor"
         canon_act_name = self.get_canon_act_grad_name("input", idx)
-        shard_slice = canonical.infer_tp_slice(tensor.shape, self.t_annotation)
+        shard_slice = canonical.infer_slice(tensor.shape, self.t_annotation)
         new_activation = neck.random.rand(canon_act_name, shard_slice)
         new_activation = new_activation -0.5  # rescale to [-1/2, 1/2]
         # NOTE: 
@@ -207,8 +207,7 @@ class BwdPreLogHook(ModuleHookBase):
     Use it only when necessary.
     """
     def _log_grad_output(self, grad: torch.Tensor, idx: int) -> None:
-        canon_grad_name = self.get_canon_act_grad_name("output", idx, 
-                                                       is_grad=True)
+        canon_grad_name = self.get_canon_act_grad_name("output", idx, True)
         tensor_info = self.get_tensor_info(grad, canon_grad_name, True)
         log_tensor(canon_grad_name, TType.g_activ, tensor_info)
 
@@ -247,9 +246,8 @@ class BwdPreRewriteHook(ModuleHookBase):
                 continue
             assert isinstance(grad, torch.Tensor), \
                 f"bwd pre hook get non tensor: {type(grad)}"
-            canon_grad_name = self.get_canon_act_grad_name("output", idx, 
-                                                           is_grad=True)
-            shard_slice = canonical.infer_tp_slice(grad.shape, self.t_annotation)
+            canon_grad_name = self.get_canon_act_grad_name("output", idx, True)
+            shard_slice = canonical.infer_slice(grad.shape, self.t_annotation)
             new_grad = neck.random.rand(canon_grad_name, shard_slice)
             new_grad = new_grad - 0.5  # rescale to [-1/2, 1/2]
             grad.data = new_grad.data.to(grad.dtype).to(grad.device)
@@ -274,8 +272,7 @@ class BwdPostLogHook(ModuleHookBase):
                 continue
             assert isinstance(grad, torch.Tensor), \
                 f"bwd post hook get non tensor {type(grad)}"
-            canon_grad_name = self.get_canon_act_grad_name("input", idx, 
-                                                           is_grad=True)
+            canon_grad_name = self.get_canon_act_grad_name("input", idx, True)
             tensor_info = self.get_tensor_info(grad, canon_grad_name, True)
             log_tensor(canon_grad_name, TType.g_activ, tensor_info)
 
