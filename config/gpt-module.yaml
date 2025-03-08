@@ -31,9 +31,13 @@ self_attention.linear_qkv:
     output: True
 
 self_attention.core_attention: 
+  input:  # Q, K, V, [seq, bs, n_head, d_head]
+    tp_dim: -2  # share the same tp dim, can make it finer by having a list
   output:
     tp_dim: -1
+  input_idx: [0, 1, 2]  # Q, K, V, mask, and we don't want mask
   grad:
+    input: True
     output: True
 
 self_attention.linear_proj:

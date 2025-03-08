@@ -1,0 +1,5 @@
+input_layernorm.weight: self_attention.linear_qkv.layer_norm_weight
+input_layernorm.bias: self_attention.linear_qkv.layer_norm_bias
+
+pre_mlp_layernorm.weight: mlp.linear_fc1.layer_norm_weight
+pre_mlp_layernorm.bias: mlp.linear_fc1.layer_norm_bias

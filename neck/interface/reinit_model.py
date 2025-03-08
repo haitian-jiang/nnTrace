@@ -1,4 +1,5 @@
 import math
+import yaml
 import torch
 import torch.nn as nn
 import neck.canonical as canonical
@@ -61,6 +62,8 @@ def reinit_model(
         hasattr(model, "state_dict")
     ), "model has not been initialized"
 
+    with open("/home/ubuntu/repos/NECK/config/gpt-name-map.yaml") as f:
+        name_mapping = yaml.safe_load(f)
     # prefix = canonical.get_prefix(set(("TP", "PP", "VP")), vp_rank)
     for name, param in model.named_parameters():
         canon_param_name = canonical.to_canonical_param_mod(name, vp_rank)
@@ -68,6 +71,12 @@ def reinit_model(
         assert annotation is not None, \
             f"Annotation not found for {name}"
         shard_slice = canonical.infer_tp_slice(param.shape, annotation)
+
+        # # TODO: work around
+        # for suffix in name_mapping:
+        #     if name.endswith(suffix):
+        #         canon_param_name = canon_param_name.replace(suffix, name_mapping[suffix])
+        #         break
 
         # reinitialize the parameter
         new_param = neck.random.rand(canon_param_name, shard_slice)
