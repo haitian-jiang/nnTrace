@@ -14,7 +14,6 @@ from typing import Optional
 from neck.structs import (
     get_annotation, 
     TensorInfo, 
-    ShardSlice, 
     ModuleAnnotation,
     TType,
 )
@@ -64,18 +63,17 @@ def reinit_model(
 
     # prefix = canonical.get_prefix(set(("TP", "PP", "VP")), vp_rank)
     for name, param in model.named_parameters():
-        # local_name = f"{prefix}{name}"
         canon_param_name = canonical.to_canonical_param_mod(name, vp_rank)
         annotation = get_annotation(name, "param")
         assert annotation is not None, \
             f"Annotation not found for {name}"
-        full_shape, tp_slice = canonical.infer_tp_slice(param.shape, annotation)
+        shard_slice = canonical.infer_tp_slice(param.shape, annotation)
 
         # reinitialize the parameter
-        new_param = neck.random.rand(canon_param_name, full_shape, tp_slice)
+        new_param = neck.random.rand(canon_param_name, shard_slice)
         # respect the original range
         if initialization == "kaiming_uniform":
-            new_param = (2 * new_param - 1) / math.sqrt(full_shape[-1])
+            new_param = (2 * new_param - 1) / math.sqrt(shard_slice.full_shape[-1])
         new_param = new_param.to(param.dtype)
         param.data = new_param.data.to(param.device)
 
@@ -83,8 +81,7 @@ def reinit_model(
             ParamLogHook(
                 canon_param_name, 
                 vp_rank,
-                full_shape, 
-                tp_slice,
+                shard_slice,
             )
         )
 
@@ -92,7 +89,7 @@ def reinit_model(
             tensor_info = TensorInfo(
                 tensor=new_param,
                 canonical_name=canon_param_name,
-                shape=ShardSlice(full_shape, tp_slice),
+                shard_slice=shard_slice,
             )
             log_tensor(canon_param_name, TType.param, tensor_info)
 
@@ -110,7 +107,7 @@ def filter_module_annotation(m_annotation: ModuleAnnotation) -> ModuleAnnotation
         The filtered module annotation.
     """
     assert m_annotation is not None, "m_annotation must be provided"
-    if CONFIG.parallel.get("sequence_parallel", None) is None:
+    if CONFIG.parallel.get("sequence_parallel", False) == False:
         if m_annotation.input:
             m_annotation.input.sp_dim = None
         if m_annotation.output:

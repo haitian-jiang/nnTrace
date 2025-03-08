@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import xxhash
 from typing import Optional
+from neck.structs import ShardNDSlices
 from .random_backend import seed_to_rand_parallel
 # from numba import njit
 
@@ -39,8 +40,7 @@ def _slice_to_index(slices: tuple[slice]) -> tuple[np.ndarray]:
 
 def rand(
         name: str, 
-        shape: tuple, 
-        slices: Optional[tuple[slice, ...]] = None,
+        shard_slice: ShardNDSlices,
         backend: str = "pytorch",
     ) -> torch.Tensor:
     """Generate a random tensor based on a unique name and shape.
@@ -53,27 +53,31 @@ def rand(
         backend (str): Backend for random tensor generation.  C++ is fast, numpy is slow.
     """
 
-    # Giving no slices returns the full tensor
-    if slices is None:
-        slices = tuple(slice(0, d) for d in shape)
-
     seed = xxhash.xxh64(name).intdigest()
     if backend == "pytorch":
         g = torch.Generator()
         g.manual_seed(seed)
-        return torch.rand(shape, generator=g)[slices].contiguous()
+        result = torch.zeros(shard_slice.local_shape)
+        virtual_full_matrix = torch.rand(shard_slice.full_shape, generator=g)
+        for local_, global_ in shard_slice.slice_map.items():
+            result[local_.pyslice] = virtual_full_matrix[global_.pyslice]
+        return result.contiguous()
     
-    slice_shape = tuple((s.stop - s.start) for s in slices)
-    seeds = np.zeros(slice_shape, dtype=np.uint64)
-    mul_index = _slice_to_index(slices)
-    linear_index = np.ravel_multi_index(mul_index, shape).astype(np.uint64)
+    linear_index_aggr = np.zeros(shard_slice.local_shape, dtype=np.uint64)
+    seeds = np.zeros(shard_slice.local_shape, dtype=np.uint64)
+    for global_, local_ in shard_slice.slice_map.items():
+        slice_shape = local_.shape  # local_ and global_ have the same shape
+        mul_index = _slice_to_index(global_)
+        linear_index = np.ravel_multi_index(mul_index, shard_slice.full_shape).astype(np.uint64)
+        linear_index_aggr[local_.pyslice] = linear_index
     
     # Create unique seed for each index. 
     # May overflow but we use uint64 so it is mod by 2^64
-    seeds = seed + linear_index
+    seeds = seed + linear_index_aggr
+    seeds = torch.from_numpy(seeds.astype(np.int64)).contiguous()
 
     if backend == "cxx":
-        return seed_to_rand_parallel(torch.from_numpy(seeds.astype(np.int64)))
+        return seed_to_rand_parallel(seeds)
     else:
         assert False, f"Backend {backend} is not supported."
 

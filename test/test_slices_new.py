@@ -1,6 +1,6 @@
 import unittest
 import torch
-from neck.structs import ShardNDSlices as ShardSlice
+from neck.structs import ShardNDSlices
 from neck.structs.slices import NDSlice, NeckSlice
 
 
@@ -51,6 +51,12 @@ class TestNDSlice(unittest.TestCase):
         slice1 = NDSlice(NeckSlice(0, 10), NeckSlice(0, 10))
         self.assertEqual(repr(slice1), "[0:10, 0:10]")
     
+    def test_shape(self):
+        slice1 = NDSlice(NeckSlice(0, 10), NeckSlice(0, 10))
+        self.assertEqual(slice1.shape, torch.Size((10,10)))
+        slice2 = NDSlice(NeckSlice(5, 10), NeckSlice(13, 20))
+        self.assertEqual(slice2.shape, torch.Size((5, 7)))
+    
     def test_pyslice(self):
         slice1 = NDSlice(NeckSlice(0, 10), NeckSlice(0, 10))
         self.assertEqual(slice1.pyslice, (slice(0, 10), slice(0, 10)))
@@ -58,7 +64,7 @@ class TestNDSlice(unittest.TestCase):
 
 class TestShardNDSlices(unittest.TestCase):
     def test_init_full_shape(self):
-        shard = ShardSlice((8, 8))
+        shard = ShardNDSlices((8, 8))
         self.assertEqual(shard.full_shape, (8, 8))
         self.assertEqual(shard.local_shape, (8, 8))
         self.assertEqual(shard.slice_map, {NDSlice(NeckSlice(0, 8), NeckSlice(0, 8)): NDSlice(NeckSlice(0, 8), NeckSlice(0, 8))})
@@ -70,7 +76,7 @@ class TestShardNDSlices(unittest.TestCase):
             NDSlice(NeckSlice(0, 256), NeckSlice(0, 1024)): NDSlice(NeckSlice(0, 256), NeckSlice(0, 1024)),
             NDSlice(NeckSlice(256, 512), NeckSlice(0, 1024)): NDSlice(NeckSlice(768, 1024), NeckSlice(0, 1024)),
         }
-        shard = ShardSlice(full_shape, local_shape, slice_map)
+        shard = ShardNDSlices(full_shape, local_shape, slice_map)
         self.assertEqual(shard.full_shape, full_shape)
         self.assertEqual(shard.local_shape, local_shape)
         self.assertEqual(shard.slice_map, slice_map)
@@ -86,8 +92,8 @@ class TestShardNDSlices(unittest.TestCase):
             NDSlice(NeckSlice(256, 512), NeckSlice(0, 1024)): NDSlice(NeckSlice(768, 1024), NeckSlice(0, 1024)),
             NDSlice(NeckSlice(0, 256), NeckSlice(0, 1024)): NDSlice(NeckSlice(0, 256), NeckSlice(0, 1024)),
         }
-        shard1 = ShardSlice(full_shape, local_shape, slice_map1)
-        shard2 = ShardSlice(full_shape, local_shape, slice_map2)
+        shard1 = ShardNDSlices(full_shape, local_shape, slice_map1)
+        shard2 = ShardNDSlices(full_shape, local_shape, slice_map2)
         shard_set = {shard1, shard2}
         self.assertEqual(len(shard_set), 1)
 
@@ -98,7 +104,7 @@ class TestShardNDSlices(unittest.TestCase):
             NDSlice(NeckSlice(0, 256), NeckSlice(0, 1024)): NDSlice(NeckSlice(0, 256), NeckSlice(0, 1024)),
             NDSlice(NeckSlice(256, 512), NeckSlice(0, 1024)): NDSlice(NeckSlice(768, 1024), NeckSlice(0, 1024)),
         }
-        shard = ShardSlice(full_shape, local_shape, slice_map)
+        shard = ShardNDSlices(full_shape, local_shape, slice_map)
         self.assertEqual(len(shard), 2)
 
     def test_repr(self):
@@ -108,7 +114,7 @@ class TestShardNDSlices(unittest.TestCase):
             NDSlice(NeckSlice(0, 256), NeckSlice(0, 1024)): NDSlice(NeckSlice(0, 256), NeckSlice(0, 1024)),
             NDSlice(NeckSlice(256, 512), NeckSlice(0, 1024)): NDSlice(NeckSlice(768, 1024), NeckSlice(0, 1024)),
         }
-        shard = ShardSlice(full_shape, local_shape, slice_map)
+        shard = ShardNDSlices(full_shape, local_shape, slice_map)
         self.assertEqual(repr(shard), "[0:256⨁768:1024, 0:1024]@(1024, 1024)")
 
     def test_repr_2d(self):
@@ -118,7 +124,7 @@ class TestShardNDSlices(unittest.TestCase):
             NDSlice(NeckSlice(0, 4), NeckSlice(0, 4)): NDSlice(NeckSlice(0, 4), NeckSlice(0, 4)),
             NDSlice(NeckSlice(0, 4), NeckSlice(4, 8)): NDSlice(NeckSlice(4, 8), NeckSlice(4, 8)),
         }
-        shard = ShardSlice(full_shape, local_shape, slice_map)
+        shard = ShardNDSlices(full_shape, local_shape, slice_map)
         self.assertEqual(repr(shard), "[0:4, 0:4]⨁[4:8, 4:8]@(8, 8)")
 
     def test_overlap(self):
@@ -132,8 +138,8 @@ class TestShardNDSlices(unittest.TestCase):
         slice_map2 = {
             NDSlice(NeckSlice(0, 1024), NeckSlice(0, 1024)): NDSlice(NeckSlice(0, 1024), NeckSlice(0, 1024)),
         }
-        shard1 = ShardSlice(full_shape, local_shape1, slice_map1)
-        shard2 = ShardSlice(full_shape, local_shape2, slice_map2)
+        shard1 = ShardNDSlices(full_shape, local_shape1, slice_map1)
+        shard2 = ShardNDSlices(full_shape, local_shape2, slice_map2)
         self.assertTrue(shard1.has_overlap(shard2))
 
 

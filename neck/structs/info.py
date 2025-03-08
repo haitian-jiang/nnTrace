@@ -1,7 +1,7 @@
 import torch
 from collections import defaultdict
 from dataclasses import dataclass, field
-from .slices import ShardSlice
+from .slices import ShardNDSlices
 from loguru import logger as clog
 from enum import Enum
 
@@ -24,7 +24,7 @@ class TensorInfo:
     """
     tensor: torch.Tensor
     canonical_name: str
-    shape: ShardSlice
+    shard_slice: ShardNDSlices
     module_class: str = ""
     is_grad: bool = False
     extra: dict = field(default_factory=dict)
@@ -36,14 +36,14 @@ class TensorInfo:
         """
         return (
             self.canonical_name == other.canonical_name and
-            self.shape == other.shape and
+            self.shard_slice == other.shard_slice and
             self.module_class == other.module_class and
             self.is_grad == other.is_grad and
             self.extra == other.extra
         )
 
     def __str__(self):
-        return f"\n{self.tensor}\n{self.canonical_name}\n{self.shape}\n" \
+        return f"\n{self.tensor}\n{self.canonical_name}\n{self.shard_slice}\n" \
                f"{self.module_class}\n{self.is_grad}\n{self.extra}\n"
 
     def __repr__(self):
@@ -61,9 +61,9 @@ class TensorInfo:
         Have this additional checking just in case, making the code no crash.
         """
         # ShardSlice as key, store a list of TensorInfo with same ShardSlice.
-        multi_info_dict: dict[ShardSlice, list[TensorInfo]] = defaultdict(list)
+        multi_info_dict: dict[ShardNDSlices, list[TensorInfo]] = defaultdict(list)
         for info in t_infos:
-            shard = info.shape
+            shard = info.shard_slice
             multi_info_dict[shard].append(info)
         
         # Merge the multiple grads for each shard, store the single TensorInfo.
@@ -121,11 +121,11 @@ class TensorInfo:
             raise ValueError("Cannot merge tensors with different grad types.")
         if not all(s.module_class == t_infos[0].module_class for s in t_infos):
             raise ValueError("Cannot merge tensors from different modules.")
-        slices = [t.shape for t in t_infos]
+        slices = [t.shard_slice for t in t_infos]
         full_shape = slices[0].full_shape
         if not all(s.full_shape == full_shape for s in slices):
             raise ValueError("Cannot merge tensors with different shapes.")
-        mask = ShardSlice.get_completeness(slices)
+        mask = ShardNDSlices.get_completeness(slices)
         if torch.any(mask == 0):
             raise ValueError("Cannot merge incomplete tensors.")
         elif not torch.all(mask == mask.flatten()[0]):
@@ -136,11 +136,13 @@ class TensorInfo:
         # merge
         result = torch.zeros(full_shape, dtype=t_infos[0].tensor.dtype)
         for info in t_infos:
-            result[info.shape.shard_slice] = info.tensor
+            for local_, global_ in info.shard_slice.slice_map.items():
+                result[global_.pyslice] = info.tensor[local_.pyslice]
+            # result[info.shard_slice.shard_slice] = info.tensor
         return TensorInfo(
             tensor=result,
             canonical_name=t_infos[0].canonical_name,
-            shape=ShardSlice(full_shape),  # already checked completeness
+            shard_slice=ShardNDSlices(full_shape),  # already checked completeness
             module_class=t_infos[0].module_class,
             is_grad=t_infos[0].is_grad,
         )
@@ -167,7 +169,7 @@ class TensorInfo:
         return TensorInfo(
             tensor=tmp_tensors[0],  # do not convert back, keep high precision
             canonical_name=t_infos[0].canonical_name,
-            shape=t_infos[0].shape,
+            shard_slice=t_infos[0].shard_slice,
             module_class=t_infos[0].module_class,
             is_grad=t_infos[0].is_grad,
         )

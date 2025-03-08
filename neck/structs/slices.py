@@ -62,6 +62,10 @@ class NDSlice(tuple):
         return self.__repr__()
     
     @property
+    def shape(self) -> torch.Size:
+        return torch.Size(s.stop - s.start for s in self)
+    
+    @property
     def pyslice(self) -> tuple[slice, ...]:
         return tuple(s.pyslice for s in self)
 
@@ -299,7 +303,7 @@ class ShardNDSlices:
             # [0:4096, 2048:4096]@(4096, 4096)
             shard_slice: NDSlice = list(self.slice_map.values())[0]
             shp = f"({', '.join(str(dim) for dim in self.full_shape)})"
-            return f"{shard_slice}@{self.full_shape}"
+            return f"{shard_slice}@{shp}"
         # check if the pieces scattered in one dimension
         # [0:256⨁768:1024, 0:1024]@(1024, 1024)
         # True most of the time

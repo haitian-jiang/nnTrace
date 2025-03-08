@@ -114,7 +114,7 @@ def to_canonical_param_mod_megatron(
 def infer_tp_slice_megatron(
         runtime_shape: torch.Size,
         annotation: Optional[TensorAnnotation] = None,
-    ) -> tuple[tuple[int, ...], tuple[slice, ...]]:
+    ) -> ShardNDSlices:
     """
     The mapping from TP / SP ranks to the slice of tensor in Megatron.
     """

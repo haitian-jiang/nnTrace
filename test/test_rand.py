@@ -1,6 +1,5 @@
 import unittest
 import random
-import argparse
 import neck
 from tqdm import trange
 

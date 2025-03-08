@@ -1,7 +1,7 @@
 import torch
 from typing import Optional
 from neck import CONFIG
-from neck.structs import TensorAnnotation
+from neck.structs import TensorAnnotation, ShardNDSlices
 from .megatron import to_canonical_param_mod_megatron, infer_tp_slice_megatron
 
 
@@ -27,7 +27,7 @@ def to_canonical_param_mod(
 def infer_tp_slice(
         runtime_shape: torch.Size,
         annotation: Optional[TensorAnnotation] = None,
-    ) -> tuple[tuple[int, ...], tuple[slice, ...]]:
+    ) -> ShardNDSlices:
     """
     Infer the full shape and slice for a tensor given its runtime shape and 
     annotation information.  If the annotation is None, then the runtime shape

@@ -19,10 +19,10 @@ def _merge_logs(
             merged_logs[c_name] = log_shards[0]
             continue
         # --- below deals with list of tensors --- #
-        if log_shards[0].shape.is_full():  # either same or need finalize grad
+        if log_shards[0].shard_slice.is_full():  # either same or need finalize grad
             # check if all are full tensors
             for info in log_shards[1:]:
-                assert info.shape.is_full(), \
+                assert info.shard_slice.is_full(), \
                     "Conflicting shapes for the same canonical name."
             # check if the full tensors are the same
             all_same = all(

@@ -27,7 +27,7 @@ def log_main_grad(
         tensor_info = TensorInfo(
             main_grad,
             canon_param_name,
-            ShardNDSlices(shard_slice),
+            shard_slice,
             is_grad=True,
         )
         log_tensor(canon_param_name, TType.g_param_main, tensor_info)
