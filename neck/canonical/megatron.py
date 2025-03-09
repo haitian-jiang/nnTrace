@@ -156,6 +156,13 @@ def infer_slice_megatron(
     cp_size = CONFIG.parallel.size.cp_size
     cp_rank = CONFIG.parallel.rank.cp_rank
 
+    # to be robost, work if seq_parallel True but no TP.
+    if tp_size == 1:  # no TP / SP
+        tp_dim = None
+        sp_dim = None
+    if cp_size == 1:  # no CP
+        cp_dim = None
+
     # calculate the full shape
     full_shape = list(local_shape)
     if tp_dim is not None:
@@ -275,9 +282,11 @@ def _rescale_grad_for_loss_cp_rescale_hook(
 
 
 _need_finalize_suffix = [
+    # sequence parallel
     "layernorm", "layer_norm", 
     "self_attention.linear_proj.bias", 
     "mlp.linear_fc2.bias", 
+    # pipeline parallel
     "embedding.word_embeddings.weight",
     "embedding.position_embeddings.weight",
 ]
@@ -294,7 +303,10 @@ def _finalize_model_grads_megatron(
     if t_type not in [TType.g_param]:
         return grad_info
     c_name = grad_info.canonical_name
-    if any(suffix in c_name for suffix in _need_finalize_suffix):
+    if (  # TODO: what if CP+SP+PP?
+        any(suffix in c_name for suffix in _need_finalize_suffix) or  # SP, PP
+        CONFIG.parallel.size.cp_size > 1
+    ):
         grad_info.extra["need_finalize_grad"] = True
     return grad_info
 

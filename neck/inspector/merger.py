@@ -81,6 +81,8 @@ def merge_distr_logs(log_path: str, t_type: Optional[TType] = None) -> None:
     Merge the logs from different ranks into a single log file.
     Works for one specific tensor type.
     """
+    if not isinstance(t_type, TType) and t_type is not None:
+        raise ValueError(f"Invalid type for `t_type`: {type(t_type)}")
     if t_type is not None:
         _merge_distr_logs(log_path, t_type)
     else:

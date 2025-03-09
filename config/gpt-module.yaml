@@ -102,4 +102,4 @@ embedding:
 module.module:
   input:
     tp_dim: null
-  input_idx: 0  # 0 is token id, 1 is position id, 2 is causal mask
+  input_idx: [0]  # 0 is token id, 1 is position id, 2 is causal mask
