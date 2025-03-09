@@ -33,6 +33,7 @@ class TensorAnnotation:
     canonical_suffix: Optional[str] = None
     tp_dim: Optional[int] = None
     sp_dim: Optional[int] = None
+    cp_dim: Optional[int] = None  # only for activations
     full: Optional[str] = None
     slice: Optional[str] = None
 

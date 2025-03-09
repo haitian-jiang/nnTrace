@@ -7,19 +7,22 @@
 #     tp_dim: null or int
 #   rewrite_input: False
 #   rewrite_grad_output: False
-#   input_idx: null
+#   input_idx: null or list[int]
 #   output_idx: null  # null means only one output, so it will be a tensor.
 #   grad: null or 
 #     input: bool
 #     output: bool
+# TODO: add checking during constructing...?
 
 input_layernorm:  # such layernorms are Identity if uses Transformer Engine
   turnoff: True  # If it is Identity (like in TE), set turnoff to True
   input:
     tp_dim: null
+    cp_dim: 0
     sp_dim: 0
   output:
     tp_dim: null
+    cp_dim: 0
     sp_dim: 0
   grad:
     input: True
@@ -31,9 +34,11 @@ self_attention.linear_qkv:
     - self_attention.linear_qkv
   input:
     tp_dim: null
+    cp_dim: 0
     sp_dim: 0
   output:
     tp_dim: -1
+    cp_dim: 0
   grad:
     input: True
     output: True
@@ -41,8 +46,10 @@ self_attention.linear_qkv:
 self_attention.core_attention: 
   input:  # Q, K, V, [seq, bs, n_head, d_head]
     tp_dim: -2  # share the same tp dim, can make it finer by having a list
+    cp_dim: 0
   output:
     tp_dim: -1
+    cp_dim: 0
   input_idx: [0, 1, 2]  # Q, K, V, mask, and we don't want mask
   grad:
     input: True
@@ -51,6 +58,7 @@ self_attention.core_attention:
 self_attention.linear_proj:
   output:
     tp_dim: null
+    cp_dim: 0
     sp_dim: 0
   output_idx: 0  # 1 is output_bias, directly copied from self.bias
   grad:
@@ -61,9 +69,11 @@ pre_mlp_layernorm:
   turnoff: True
   input: 
     tp_dim: null
+    cp_dim: 0
     sp_dim: 0
   output: 
     tp_dim: null
+    cp_dim: 0
     sp_dim: 0
   grad:
     input: True
@@ -75,6 +85,7 @@ mlp.linear_fc1:  # if record input, then input has sp dim 0
     - mlp.linear_fc1
   output: 
     tp_dim: -1  # (seq_len, batch_size, hidden_size)
+    cp_dim: 0
   output_idx: 0  # 1 is output_bias
   grad:
     output: True
@@ -82,8 +93,10 @@ mlp.linear_fc1:  # if record input, then input has sp dim 0
 mlp.linear_fc2:
   input:
     tp_dim: -1
+    cp_dim: 0
   output:
     tp_dim: null
+    cp_dim: 0
     sp_dim: 0
   output_idx: 0  # 1 is output_bias
   grad:
@@ -93,20 +106,25 @@ mlp.linear_fc2:
 layers.\d:
   output:
     tp_dim: null
+    cp_dim: 0
     sp_dim: 0
   output_idx: 0
   grad:
     output: True
 
 word_embeddings:
-  output:
+  output:  # [batch_size, seq_len / cp_size, hidden_size]
     tp_dim: null
+    cp_dim: 1
 
 embedding:
-  output:
+  output:  # [seq_len / cp_size / tp_size, batch_size, hidden_size]
     tp_dim: null
+    cp_dim: 0
     sp_dim: 0
 
 module.module:
-  input:
+  input:  # [batch_size, seq_len / cp_size]
     tp_dim: null
+    cp_dim: 1
+  input_idx: [0]  # 0 is token id, 1 is position id, 2 is causal mask

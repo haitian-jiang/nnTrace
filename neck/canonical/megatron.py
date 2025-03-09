@@ -111,8 +111,30 @@ def to_canonical_param_mod_megatron(
     return ".".join(name_decomp)
 
 
+    # # checking, if full_shape and slices are proveded in annotation
+    # if annotation.full is not None or annotation.slice is not None:
+    #     hidden_size = CONFIG.architecture.hidden_size
+    #     seq_length = CONFIG.architecture.seq_length
+    #     _allowed_locals = {
+    #         "tp_size": tp_size,
+    #         "hidden_size": hidden_size,
+    #         "seq_length": seq_length
+    #     }
+    
+    # if annotation.full is not None:
+    #     annotation_full_shape = eval(annotation.full, {}, _allowed_locals)
+    #     annotation_full_shape = torch.Size(annotation_full_shape)
+    #     assert full_shape == annotation_full_shape, \
+    #         f"Full shape mismatch: {full_shape} vs {annotation_full_shape}"
+        
+    # if annotation.slice is not None:
+    #     annotation_slice_shape = eval(annotation.slice, {}, _allowed_locals)
+    #     assert runtime_shape == annotation_slice_shape, \
+    #         f"Slice mismatch: {ndslice} vs {annotation_slice_shape}"
+
+
 def infer_slice_megatron(
-        runtime_shape: torch.Size,
+        local_shape: torch.Size,
         annotation: Optional[TensorAnnotation] = None,
     ) -> ShardNDSlices:
     """
@@ -120,58 +142,88 @@ def infer_slice_megatron(
     """
 
     if annotation is None:  # no sharding
-        return ShardNDSlices(runtime_shape)
-        # return runtime_shape, tuple(slice(0, dim) for dim in runtime_shape)
+        return ShardNDSlices(local_shape)
     
     tp_dim = annotation.tp_dim  # None if not sharded, otherwise int
     sp_dim = annotation.sp_dim  # None if not sharded, otherwise 0
+    cp_dim = annotation.cp_dim  # None if not sharded, otherwise int
     assert sp_dim is None or sp_dim == 0, "SP should shard the first dim."
     assert not (tp_dim is not None and sp_dim is not None), \
         "TP and SP should not shard the same tensor."
+    # TODO: I want to assert if CP is on, sp_dim enabled => cp_dim enabled
     tp_size = CONFIG.parallel.size.tp_size
     tp_rank = CONFIG.parallel.rank.tp_rank
+    cp_size = CONFIG.parallel.size.cp_size
+    cp_rank = CONFIG.parallel.rank.cp_rank
 
     # calculate the full shape
-    full_shape = list(runtime_shape)
+    full_shape = list(local_shape)
     if tp_dim is not None:
         full_shape[tp_dim] *= tp_size
     if sp_dim is not None:
         full_shape[sp_dim] *= tp_size
+    if cp_dim is not None:
+        full_shape[cp_dim] *= cp_size
     full_shape = torch.Size(full_shape)
 
-    # calculate the slice
-    ndslice = [NeckSlice(0, dim) for dim in runtime_shape]
-    if tp_dim is not None:
-        ndslice[tp_dim] = NeckSlice(runtime_shape[tp_dim] * tp_rank, 
-                                   runtime_shape[tp_dim] * (tp_rank + 1))
-    if sp_dim is not None:
-        ndslice[sp_dim] = NeckSlice(runtime_shape[sp_dim] * tp_rank, 
-                                   runtime_shape[sp_dim] * (tp_rank + 1))
+    # calculate the slice, fast path of only TP and optionally SP
+    if cp_dim is None:
+        global_ = [NeckSlice(0, dim) for dim in local_shape]
+        if tp_dim is not None:
+            global_[tp_dim] = NeckSlice(local_shape[tp_dim] * tp_rank, 
+                                        local_shape[tp_dim] * (tp_rank + 1))
+        if sp_dim is not None:
+            global_[sp_dim] = NeckSlice(local_shape[sp_dim] * tp_rank, 
+                                        local_shape[sp_dim] * (tp_rank + 1))
+        slice_map = {NDSlice(local_shape): NDSlice(global_)}
+        return ShardNDSlices(full_shape, local_shape, slice_map)
 
-    # checking, if full_shape and slices are proveded in annotation
-    if annotation.full is not None or annotation.slice is not None:
-        hidden_size = CONFIG.architecture.hidden_size
-        seq_length = CONFIG.architecture.seq_length
-        _allowed_locals = {
-            "tp_size": tp_size,
-            "hidden_size": hidden_size,
-            "seq_length": seq_length
-        }
+    # CP is enabled, has two blocks in slice_map if sans SP, one if with SP
+    # stripped attention for decoder CP. TODO: see if general enough.
+    global_h = [NeckSlice(0, dim) for dim in local_shape]
+    global_t = [NeckSlice(0, dim) for dim in local_shape]
+    seq_len = full_shape[cp_dim]
+    cp_seq_blk = seq_len // (cp_size * 2)  # 2 blocks
     
-    if annotation.full is not None:
-        annotation_full_shape = eval(annotation.full, {}, _allowed_locals)
-        annotation_full_shape = torch.Size(annotation_full_shape)
-        assert full_shape == annotation_full_shape, \
-            f"Full shape mismatch: {full_shape} vs {annotation_full_shape}"
-        
-    if annotation.slice is not None:
-        annotation_slice_shape = eval(annotation.slice, {}, _allowed_locals)
-        assert runtime_shape == annotation_slice_shape, \
-            f"Slice mismatch: {ndslice} vs {annotation_slice_shape}"
+    # with CP, sans TP, sans SP
+    global_h[cp_dim] = NeckSlice(cp_seq_blk * cp_rank,
+                                 cp_seq_blk * (cp_rank + 1))
+    global_t[cp_dim] = NeckSlice(seq_len - cp_seq_blk * (cp_rank + 1),
+                                 seq_len - cp_seq_blk * cp_rank)
     
-    slice_map = {NDSlice(runtime_shape): NDSlice(ndslice)}
-    return ShardNDSlices(full_shape, runtime_shape, slice_map)
-    # return full_shape, tuple(ndslice)
+    if sp_dim is None and tp_dim is not None:
+    # no SP, optionally TP.  If no TP, don't do anything; if TP, slice TP.
+        # with CP, with TP, sans SP
+        global_h[tp_dim] = NeckSlice(local_shape[tp_dim] * tp_rank,
+                                     local_shape[tp_dim] * (tp_rank + 1))
+        global_t[tp_dim] = NeckSlice(local_shape[tp_dim] * tp_rank,
+                                     local_shape[tp_dim] * (tp_rank + 1))
+    if sp_dim is None:
+        assert local_shape[cp_dim] == cp_seq_blk * 2, \
+            f"Wrong shape for CP, sans SP."
+        local_h = [NeckSlice(0, dim) for dim in local_shape]
+        local_t = [NeckSlice(0, dim) for dim in local_shape]
+        local_h[cp_dim] = NeckSlice(0, cp_seq_blk)
+        local_t[cp_dim] = NeckSlice(cp_seq_blk, cp_seq_blk * 2)
+        slice_map = {NDSlice(local_h): NDSlice(global_h),
+                     NDSlice(local_t): NDSlice(global_t)}
+        return ShardNDSlices(full_shape, local_shape, slice_map)
+
+    # with CP, with SP, optionally TP
+    assert sp_dim == cp_dim, "CP and SP should shard the same dim."
+    seq_dim = cp_dim
+    assert local_shape[seq_dim] * tp_size == cp_seq_blk * 2, \
+        f"Wrong shape for CP, with SP."
+    cp_blk_id = tp_rank // (tp_size // 2)  # 0: head block, 1: tail block (stripped attn)
+    sp_id_within_cp_blk = tp_rank % (tp_size // 2)
+    global_ = global_h if cp_blk_id == 0 else global_t  # to be modified
+    cp_seq_start = global_[seq_dim].start  # offset for the same cp block (h/t)
+    local_seq_len = local_shape[seq_dim]  # SP > 2, so only 1 slice in slice_map
+    local_seq_start = cp_seq_start + local_seq_len * sp_id_within_cp_blk
+    local_seq_stop = local_seq_start + local_seq_len
+    global_[seq_dim] = NeckSlice(local_seq_start, local_seq_stop)
+    slice_map = {NDSlice(local_shape): NDSlice(global_)}
+    return ShardNDSlices(full_shape, local_shape, slice_map)
 
 
 def _rescale_grad_for_pp_microbatch_hook(

@@ -1,14 +1,17 @@
 # module_name:
 #   turnoff: False
+#   fused: null or list of module_name
 #   input:  # tensor annotation
-#     tp_dim: null
+#     tp_dim: null or int
 #   output:  # tensor annotation
-#     tp_dim: null
+#     tp_dim: null or int
 #   rewrite_input: False
 #   rewrite_grad_output: False
 #   input_idx: null
 #   output_idx: null  # null means only one output, so it will be a tensor.
-#   grad: null
+#   grad: null or 
+#     input: bool
+#     output: bool
 
 input_layernorm:  # such layernorms are Identity if uses Transformer Engine
   input:
@@ -21,7 +24,7 @@ input_layernorm:  # such layernorms are Identity if uses Transformer Engine
     input: True
     output: True
 
-self_attention.linear_qkv: 
+self_attention.linear_qkv:
   input:
     tp_dim: null
     sp_dim: 0
@@ -99,3 +102,4 @@ embedding:
 module.module:
   input:
     tp_dim: null
+  input_idx: 0  # 0 is token id, 1 is position id, 2 is causal mask

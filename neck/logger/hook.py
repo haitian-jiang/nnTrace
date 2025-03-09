@@ -459,6 +459,7 @@ class ParamLogHook:
             canonical_name=canonical_grad_name,
             shard_slice=self.shard_slice,
             is_grad=True,
-            extra = {"fw_canon_name": self.fw_canon_name},
+            extra = {"fw_canon_name": self.fw_canon_name} 
+                    if self.fw_canon_name else None,
         )
         log_tensor(canonical_grad_name, TType.g_param, tensor_info)
