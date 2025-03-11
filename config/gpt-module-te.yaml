@@ -14,6 +14,20 @@
 #     output: bool
 # TODO: add checking during constructing...?
 
+
+word_embeddings:
+  input:
+    tp_dim: null
+  output:  # [batch_size, seq_len / cp_size, hidden_size]
+    tp_dim: null
+    cp_dim: 1
+
+embedding:
+  output:  # [seq_len / cp_size / tp_size, batch_size, hidden_size]
+    tp_dim: null
+    cp_dim: 0
+    sp_dim: 0
+
 input_layernorm:  # such layernorms are Identity if uses Transformer Engine
   turnoff: True  # If it is Identity (like in TE), set turnoff to True
   input:
@@ -112,19 +126,3 @@ layers.\d:
   grad:
     output: True
 
-word_embeddings:
-  output:  # [batch_size, seq_len / cp_size, hidden_size]
-    tp_dim: null
-    cp_dim: 1
-
-embedding:
-  output:  # [seq_len / cp_size / tp_size, batch_size, hidden_size]
-    tp_dim: null
-    cp_dim: 0
-    sp_dim: 0
-
-module.module:
-  input:  # [batch_size, seq_len / cp_size]
-    tp_dim: null
-    cp_dim: 1
-  input_idx: [0]  # 0 is token id, 1 is position id, 2 is causal mask

@@ -13,6 +13,18 @@
 #     input: bool
 #     output: bool
 
+word_embeddings:
+  input:
+    tp_dim: null
+  output:
+    tp_dim: null
+  input_idx: [0]  # 0 is token id, 1 is position id
+
+embedding:
+  output:
+    tp_dim: null
+    sp_dim: 0
+
 input_layernorm:  # such layernorms are Identity if uses Transformer Engine
   input:
     tp_dim: null
@@ -89,17 +101,3 @@ layers.\d:
   output_idx: 0
   grad:
     output: True
-
-word_embeddings:
-  output:
-    tp_dim: null
-
-embedding:
-  output:
-    tp_dim: null
-    sp_dim: 0
-
-module.module:
-  input:
-    tp_dim: null
-  input_idx: [0]  # 0 is token id, 1 is position id, 2 is causal mask
