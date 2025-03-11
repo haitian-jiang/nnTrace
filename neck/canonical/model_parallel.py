@@ -1,8 +1,12 @@
 import torch
 from typing import Optional
 from neck import CONFIG
-from neck.structs import TensorAnnotation, ShardNDSlices
-from .megatron import to_canonical_param_mod_megatron, infer_slice_megatron
+from neck.structs import TensorAnnotation, ShardNDSlices, TensorInfo
+from .megatron import (
+    to_canonical_param_mod_megatron, 
+    infer_slice_megatron,
+    trim_word_embeddings_megatron,
+)
 
 
 def to_canonical_param_mod(
@@ -35,6 +39,20 @@ def infer_slice(
     """
     if CONFIG.parallel.framework == "Megatron-LM":
         return infer_slice_megatron(runtime_shape, annotation)
+    else:
+        raise NotImplementedError(
+            f"Parallel framework {CONFIG.parallel.framework} is not supported."
+        )
+
+
+def trim_word_embeddings(
+        info_dict: dict[str, TensorInfo]
+    ) -> dict[str, TensorInfo]:
+    """
+    Trim the word embeddings tensor to the vocabulary size.
+    """
+    if CONFIG.parallel.framework == "Megatron-LM":
+        return trim_word_embeddings_megatron(info_dict)
     else:
         raise NotImplementedError(
             f"Parallel framework {CONFIG.parallel.framework} is not supported."

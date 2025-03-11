@@ -1,7 +1,7 @@
 import torch
 
 
-def get_rel_err(specimen, oracle, norm='fro'):
+def tensor_rel_err(specimen, oracle, norm='fro'):
     specimen = specimen.to(torch.float64)
     oracle = oracle.to(torch.float64)
     mask = specimen.isnan() | oracle.isnan() | specimen.isinf() | oracle.isinf()
@@ -16,4 +16,4 @@ def get_rel_err(specimen, oracle, norm='fro'):
     return rerr.item()
 
 
-__all__ = ["get_rel_err"]
+__all__ = ["tensor_rel_err"]

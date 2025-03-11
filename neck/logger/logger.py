@@ -4,11 +4,10 @@ import datetime
 from pathlib import Path
 from dataclasses import dataclass
 from collections import defaultdict
-from typing import Literal
 from omegaconf import OmegaConf
 from loguru import logger as clog
 from neck import CONFIG
-from neck.canonical import get_parallel_states
+from neck.canonical import get_parallel_states, trim_word_embeddings
 from neck.structs import TensorInfo, TType
 from .log_hooks import LOG_HOOKS
 
@@ -69,12 +68,14 @@ def _exit_hook():
                 clog.debug("⛔️ Logging is disabled.")
                 return
         world_size = get_parallel_states().size.world_size
-        if run_name:=CONFIG.logging.disk.get("run_name", None) is None:
+        if (run_name:=CONFIG.logging.disk.get("run_name", None)) is None:
             run_name = datetime.datetime.now().strftime("%y-%m-%d-%H-%M")
-        suffix = "single" if world_size == 1 else "distr"
-        run_dir = Path(CONFIG.logging.disk.log_path) / f"{run_name}-{suffix}"
+        run_dir = Path(CONFIG.logging.disk.log_path) / f"{run_name}"
         run_dir.mkdir(parents=True, exist_ok=True)
         for t_type in TType:
+            # trim word embeddings to vocab_size for single GPU
+            if world_size == 1:
+                trim_word_embeddings(LOGS[t_type])
             save_logs(t_type, run_dir)
     except AssertionError:
         # in get_parallel_states, torch.distributed is not initialized

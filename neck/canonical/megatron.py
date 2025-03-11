@@ -233,6 +233,19 @@ def infer_slice_megatron(
     return ShardNDSlices(full_shape, local_shape, slice_map)
 
 
+def trim_word_embeddings_megatron(
+        info_dict: dict[str, TensorInfo],
+    ) -> dict[str, TensorInfo]:
+    for c_name, info in info_dict.items():
+        if ("word_embeddings" in c_name and
+            info.tensor.size(0) > CONFIG.architecture.vocab_size
+        ):
+            info.tensor = info.tensor[:CONFIG.architecture.vocab_size]
+            info.shard_slice = ShardNDSlices(info.tensor.shape)
+            break
+    return info_dict
+
+
 def _rescale_grad_for_pp_microbatch_hook(
         grad_info: TensorInfo, 
         t_type: TType,
@@ -251,11 +264,8 @@ def _rescale_grad_for_pp_microbatch_hook(
     if t_type not in [TType.g_activ, TType.g_param]:
         return grad_info
     # only for grad obtained by torch hooks
-    try:
-        from megatron.core.num_microbatches_calculator import get_num_microbatches
-        num_microbatches = get_num_microbatches()
-    except ImportError:
-        num_microbatches = CONFIG.parallel.num_microbatches
+    # num_microbatches has been rewritten if available from Megatron
+    num_microbatches = CONFIG.parallel.num_microbatches
 
     if num_microbatches > 1:
         grad_info.tensor *= num_microbatches
@@ -289,7 +299,7 @@ _need_finalize_suffix = [
     # pipeline parallel
     "embedding.word_embeddings.weight",
     "embedding.position_embeddings.weight",
-]
+]  # TODO: add judge for the parallelism used. and decide whether to add "extra"
 def _finalize_model_grads_megatron(
         grad_info: TensorInfo, 
         t_type: TType,

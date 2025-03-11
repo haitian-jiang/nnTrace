@@ -4,12 +4,13 @@ from pathlib import Path
 from typing import Optional
 from loguru import logger as clog
 from neck.structs import TensorInfo, TType
+from neck.canonical import trim_word_embeddings
 
 
 def _merge_logs(
         log_collections: dict[str, list[TensorInfo]],
         t_type: TType,
-    ) -> dict[str, TensorInfo | list[TensorInfo]]:
+    ) -> dict[str, TensorInfo | None]:
     """
     Update the merged logs with the raw logs.
     """
@@ -57,7 +58,7 @@ def _merge_distr_logs(log_path: str, t_type: TType) -> None:
     merged_file_path = Path(log_path) / f"{t_type}.pt"
     if merged_file_path.exists():
         return
-    
+
     raw_log_dir = Path(log_path) / t_type
     raw_log_files = raw_log_dir.glob("*.pt")
     clog.info(f"Merging logs from {raw_log_dir}")
@@ -69,9 +70,10 @@ def _merge_distr_logs(log_path: str, t_type: TType) -> None:
         for c_name, log in raw_logs.items():
             log_collections[c_name].append(log)
         canonical_names.update(raw_logs.keys())
-    merged_logs = _merge_logs(log_collections, t_type)
+    merged_logs: dict[str, TensorInfo] = _merge_logs(log_collections, t_type)
     for canonical_name in canonical_names:
         assert canonical_name in merged_logs
+    trim_word_embeddings(merged_logs)
     torch.save(merged_logs, merged_file_path)
     clog.info(f"Saved merged logs to {merged_file_path}")
 
@@ -81,6 +83,10 @@ def merge_distr_logs(log_path: str, t_type: Optional[TType] = None) -> None:
     Merge the logs from different ranks into a single log file.
     Works for one specific tensor type.
     """
+    clog_file = Path(log_path) / "merger.log"
+    clog_file.touch()
+    clog.add(clog_file)
+
     if not isinstance(t_type, TType) and t_type is not None:
         raise ValueError(f"Invalid type for `t_type`: {type(t_type)}")
     if t_type is not None:

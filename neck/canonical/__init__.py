@@ -1,5 +1,9 @@
 from .parallel_states import get_parallel_states, GOT_PARALLEL_STATES
-from .model_parallel import to_canonical_param_mod, infer_slice
+from .model_parallel import (
+    to_canonical_param_mod, 
+    infer_slice, 
+    trim_word_embeddings,
+)
 from .data_parallel import calc_global_batch_id
 
 __all__ = [
@@ -7,5 +11,6 @@ __all__ = [
     "get_parallel_states",
     "to_canonical_param_mod",
     "infer_slice",
+    "trim_word_embeddings",
     "calc_global_batch_id",
 ]

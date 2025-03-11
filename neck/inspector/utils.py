@@ -2,7 +2,7 @@ import re
 import torch
 import numpy as np
 from collections import defaultdict
-from .err import get_rel_err
+from .err import tensor_rel_err
 
 
 import re
@@ -29,7 +29,7 @@ def get_err_raw(specimen_path, oracle_path) -> dict[str, float]:
         if oracle.shape != specimen.shape:
             assert "word_embedding" in name
             specimen = specimen.view(-1)[:oracle.numel()].view(oracle.shape)
-        err = get_rel_err(specimen, oracle)
+        err = tensor_rel_err(specimen, oracle)
         err_dict[name] = err
     return err_dict
 
