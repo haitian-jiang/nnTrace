@@ -16,8 +16,9 @@
 
 
 word_embeddings:
-  input:
+  input:  # [batch_size, seq_len]
     tp_dim: null
+    cp_dim: 1
   output:  # [batch_size, seq_len / cp_size, hidden_size]
     tp_dim: null
     cp_dim: 1

@@ -66,7 +66,7 @@ def _merge_distr_logs(log_path: str, t_type: TType) -> None:
     log_collections: dict[str, list[TensorInfo]] = defaultdict(list)
     canonical_names: set[str] = set()  # just for checking
     for raw_log_file in raw_log_files:  # e.g.: rank0.pt
-        raw_logs: dict[str, TensorInfo] = torch.load(raw_log_file)
+        raw_logs: dict[str, TensorInfo] = torch.load(raw_log_file, weights_only=False)
         for c_name, log in raw_logs.items():
             log_collections[c_name].append(log)
         canonical_names.update(raw_logs.keys())
