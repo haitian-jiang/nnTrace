@@ -90,7 +90,9 @@ def merge_distr_logs(log_path: str, t_type: Optional[TType] = None) -> None:
     if not isinstance(t_type, TType) and t_type is not None:
         raise ValueError(f"Invalid type for `t_type`: {type(t_type)}")
     if t_type is not None:
-        _merge_distr_logs(log_path, t_type)
+        running_ttypes = [t_type]
     else:
-        for t_type in TType:
-            _merge_distr_logs(log_path, t_type)
+        running_ttypes = list(TType)
+
+    for t_type in running_ttypes:
+        _merge_distr_logs(log_path, t_type)

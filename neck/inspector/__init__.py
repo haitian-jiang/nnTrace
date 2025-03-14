@@ -1,6 +1,6 @@
 from .merger import merge_distr_logs
 from .err import tensor_rel_err
-from .utils import parse_name, get_err_raw, get_err_array, store_err_result
+from .differential_test import parse_name, get_err_raw, get_err_array, conduct_differential_test
 
 
 __all__ = [
@@ -9,5 +9,5 @@ __all__ = [
     "parse_name",
     "get_err_raw",
     "get_err_array",
-    "store_err_result",
+    "conduct_differential_test",
 ]
