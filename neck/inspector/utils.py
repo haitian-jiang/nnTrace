@@ -1,12 +1,11 @@
+import os
 import re
 import torch
 import numpy as np
 from collections import defaultdict
-from typing import Optional
 from pathlib import Path
 from neck.structs import TType
 from loguru import logger as clog
-from tqdm.auto import tqdm
 import concurrent.futures
 from .err import tensor_rel_err
 
@@ -24,23 +23,17 @@ def parse_name(name):
         return None, None, None
 
 
-
-
-
-def _robust_tensor_rel_err(name, specimen, oracle):
-    if specimen.shape != oracle.shape:
-        assert "word_embeddings" in name
-        vocab = min(specimen.shape[0], oracle.shape[0])
-        specimen = specimen[:vocab]
-        oracle = oracle[:vocab]
-    return tensor_rel_err(specimen, oracle)
+def _err_fn(data):
+    torch.set_num_threads(1)
+    name, specimen, oracle = data
+    rerr = tensor_rel_err(specimen, oracle)
+    return name, rerr
 
 
 def get_err_raw(
         specimen_path, 
         oracle_path, 
-        show_progress: bool = False,
-        t_type: Optional[TType] = None,
+        t_type: TType,
     ) -> dict[str, float]:
     """
     Retruns: dict[c_name, rel_err]
@@ -49,27 +42,22 @@ def get_err_raw(
     oracle_dict = torch.load(oracle_path, weights_only=False)
     assert specimen_dict.keys() == oracle_dict.keys(), "Keys mismatch"
 
-    show_progress = t_type is TType.activ
-    if show_progress:
-        pbar = tqdm(total=len(oracle_dict), position=0, 
-                    desc=f"Calculating {t_type} error")
-
-    err_dict = {}
+    input_list = []
     for name in specimen_dict.keys():
         specimen = specimen_dict[name].tensor
         oracle = oracle_dict[name].tensor
         if specimen.shape != oracle.shape:
             assert "word_embeddings" in name
-            cut = min(specimen.shape[0], oracle.shape[0])
-            specimen = specimen[:cut]
-            oracle = oracle[:cut]
-        err = tensor_rel_err(specimen, oracle)
-        err_dict[name] = err
-        if show_progress:
-            pbar.update(1)
-    if show_progress:
-        pbar.close()
-
+            vocab = min(specimen.shape[0], oracle.shape[0])
+            specimen = specimen[:vocab]
+            oracle = oracle[:vocab]
+        input_list.append((name, specimen, oracle))
+    
+    ncpu = os.cpu_count()
+    clog.info(f"Start calculating errors for {t_type}!")
+    with concurrent.futures.ProcessPoolExecutor(max_workers=ncpu) as executor:
+        results = list(executor.map(_err_fn, input_list))
+    err_dict = dict(results)
     return err_dict
 
 
@@ -93,31 +81,18 @@ def store_err_result(
     output_dir = Path(output_dir)
     output_dir.mkdir(exist_ok=True, parents=True)
 
-    with concurrent.futures.ProcessPoolExecutor() as executor:
-        futures = {
-            t_type: executor.submit(
-                get_err_raw,
-                specimen_run_dir / f"{t_type}.pt",
-                oracle_run_dir / f"{t_type}.pt",
-                t_type is TType.activ,
-                t_type,
-            )
-            for t_type in TType
-        }
-        results = {
-            t_type: future.result()
-            for t_type, future in futures.items()
-        }
-
     for t_type in TType:
-        torch.save(results[t_type], output_dir / f"{t_type}.pt")
-    
-    clog.info("Finished comparing and storing! ")
-    
-    for t_type in TType:
+        if (output_dir / f"{t_type}.pt").exists():
+            continue
+        err_dict = get_err_raw(
+            specimen_run_dir / f"{t_type}.pt",
+            oracle_run_dir / f"{t_type}.pt",
+            t_type,
+        )
+        torch.save(err_dict, output_dir / f"{t_type}.pt")
         with open(output_dir / f"{t_type}.log", "w") as f:
-            for name, err in results[t_type].items():
+            for name, err in err_dict.items():
                 print(f"{name:<90} {err:.4e} {err/2**-7:10.1f}", file=f)
-
+        clog.info(f"Finished comparing and storing {t_type}! ")
 
 __all__ = ["get_err_raw", "get_err_array", "store_err_result"]
