@@ -1,22 +1,24 @@
 from neck import CONFIG as NECK_CONFIG
 
-if NECK_CONFIG.parallel.framework == "Megatron-LM":
-    from megatron.core.model_parallel_config import ModelParallelConfig
 
-
-def parse_framework_config(config: ModelParallelConfig) -> None:
-    if getattr(config, "sequence_parallel", None) is not None:
+def parse_framework_config(args) -> None:
+    if getattr(args, "sequence_parallel", None) is not None:
         # overwrite the value in neck's config yaml if available from megatron
-        NECK_CONFIG.parallel.sequence_parallel = config.sequence_parallel
-    if getattr(config, "num_layers", None) is not None:
-        NECK_CONFIG.architecture.num_layers = config.num_layers
-    if getattr(config, "hidden_size", None) is not None:
-        NECK_CONFIG.architecture.hidden_size = config.hidden_size
-    if getattr(config, "num_attention_heads", None) is not None:
-        NECK_CONFIG.architecture.num_attention_heads = config.num_attention_heads
-    if getattr(config, "bf16", False):
+        NECK_CONFIG.parallel.sequence_parallel = args.sequence_parallel
+    if getattr(args, "num_layers", None) is not None:
+        NECK_CONFIG.architecture.num_layers = args.num_layers
+    if getattr(args, "hidden_size", None) is not None:
+        NECK_CONFIG.architecture.hidden_size = args.hidden_size
+    if getattr(args, "num_attention_heads", None) is not None:
+        NECK_CONFIG.architecture.num_attention_heads = args.num_attention_heads
+    if getattr(args, "seq_length", None) is not None:
+        NECK_CONFIG.architecture.seq_length = args.seq_length
+    if getattr(args, "untie_embeddings_and_output_weights", None) is not None:
+        share = not args.untie_embeddings_and_output_weights
+        NECK_CONFIG.architecture.share_embeddings_and_output_weights = share
+    if getattr(args, "bf16", False):
         NECK_CONFIG.architecture.datatype = "bf16"
-    if getattr(config, "fp16", False):
+    if getattr(args, "fp16", False):
         NECK_CONFIG.architecture.datatype = "fp16"
     try:
         from megatron.core.num_microbatches_calculator import get_num_microbatches
