@@ -69,7 +69,9 @@ def _exit_hook():
                 return
         world_size = get_parallel_states().size.world_size
         if (run_name:=CONFIG.logging.disk.get("run_name", None)) is None:
-            run_name = datetime.datetime.now().strftime("%y-%m-%d-%H-%M")
+            time_name = datetime.datetime.now().strftime("%y-%m-%d-%H-%M")
+            suffix = "single" if world_size == 1 else "distr"
+            run_name = f"{time_name}-{suffix}"
         run_dir = Path(CONFIG.logging.disk.log_path) / f"{run_name}"
         run_dir.mkdir(parents=True, exist_ok=True)
         for t_type in TType:
