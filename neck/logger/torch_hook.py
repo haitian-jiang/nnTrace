@@ -412,9 +412,6 @@ def register_hook(
             prepend=True
         )
 
-    # TODO: here uses BwdPreLogHook not correctly, but actually need to have 
-    # a new class of BwdPostLogOutputHook, 
-    # and change the current BwdPostLogHook to BwdPostLogInputHook
     if annotation.grad.get("output", None):
         assert annotation.output is not None, \
             f"Cannot log output without tensor annotation: {canon_mod_name}"

@@ -1,21 +1,29 @@
+#include <execution>
 #include "rel_err.hpp"
 
+using std::get;
+using std::tuple;
+using std::string;
+using torch::Tensor;
+using std::vector;
 
-std::tuple<std::string, double> tensor_rel_err_with_name(
-    const std::string &name,
-    const torch::Tensor &specimen,
-    const torch::Tensor &oracle,
-    const std::string &norm
+
+tuple<string, double> tensor_rel_err_with_name(
+    const string &name,
+    const Tensor &specimen,
+    const Tensor &oracle,
+    const string &norm
 ) {
-    torch::Tensor specimen_fp64 = specimen.to(torch::kFloat64);
-    torch::Tensor oracle_fp64 = oracle.to(torch::kFloat64);
-    torch::Tensor mask = specimen_fp64.isnan() | oracle_fp64.isnan() | 
-                         specimen_fp64.isinf() | oracle_fp64.isinf();
+    torch::set_num_threads(1);
+    Tensor specimen_fp64 = specimen.to(torch::kFloat64);
+    Tensor oracle_fp64 = oracle.to(torch::kFloat64);
+    Tensor mask = specimen_fp64.isnan() | oracle_fp64.isnan() | 
+                  specimen_fp64.isinf() | oracle_fp64.isinf();
 
     specimen_fp64.masked_fill_(mask, 0);
     oracle_fp64.masked_fill_(mask, 0);
 
-    torch::Tensor rerr;
+    Tensor rerr;
     if (norm == "fro") {
         rerr = (specimen_fp64 - oracle_fp64).norm() / oracle_fp64.norm();
     } else if (norm == "1") {
@@ -27,4 +35,25 @@ std::tuple<std::string, double> tensor_rel_err_with_name(
     }
 
     return std::make_tuple(name, rerr.item<double>());
+}
+
+
+vector<tuple<string, double>> parallel_rel_err(
+    const vector<tuple<string, Tensor, Tensor>> &input_list
+) {
+    vector<tuple<string, double>> output_list(input_list.size());
+
+    std::transform(
+        std::execution::par,
+        input_list.begin(),
+        input_list.end(),
+        output_list.begin(),
+        [](const tuple<string, Tensor, Tensor> &input) {
+            return tensor_rel_err_with_name(
+                get<0>(input), get<1>(input), get<2>(input), "fro"
+            );
+        }
+    );
+
+    return output_list;
 }
