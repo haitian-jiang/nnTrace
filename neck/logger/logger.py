@@ -9,7 +9,7 @@ from loguru import logger as clog
 from neck import CONFIG
 from neck.canonical import get_parallel_states, trim_word_embeddings
 from neck.structs import TensorInfo, TType
-from .log_hooks import LOG_HOOKS
+from .log_hook import LOG_HOOKS
 
 
 LOGS = defaultdict(dict)

@@ -1,5 +1,5 @@
 from .logger import log_tensor
-from .hook import (
+from .torch_hook import (
     register_hook, 
     regist_batch_cnt_hook, 
     ParamLogHook,
