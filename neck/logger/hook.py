@@ -123,8 +123,6 @@ class FwdPreLogHook(ModuleHookBase):
                 tensor_info = self.get_tensor_info(activation, canon_act_name)
                 log_tensor(canon_act_name, TType.activ, tensor_info)
         else:
-            if "self_attention.core_attention" in self.canon_mod_name:
-                print("here")
             for i, activation in enumerate(args):
                 if not isinstance(activation, torch.Tensor):
                     continue
@@ -141,7 +139,7 @@ class FwdPreRewriteHook(ModuleHookBase):
         canon_act_name = self.get_canon_act_grad_name("input", idx)
         shard_slice = canonical.infer_slice(tensor.shape, self.t_annotation)
         new_activation = neck.random.rand(canon_act_name, shard_slice)
-        new_activation = new_activation -0.5  # rescale to [-1/2, 1/2]
+        new_activation = 0.02 * (new_activation-0.5)  # rescale to [-0.01, 0.01]
         # NOTE: 
         # Must directly rewrite the tensor.data.  Return the new tensor will 
         # break the computation graph by losing the `grad_fn` attribute.
@@ -156,15 +154,16 @@ class FwdPreRewriteHook(ModuleHookBase):
             f"module mismatch in {self.canon_mod_name} pre rewrite"
         if len(args) == 1:
             self.m_annotation.input_idx = 0
-        if self.m_annotation.input_idx is not None:  # only one input
-            idx = self.m_annotation.input_idx
-            self._rewrite_input(args[idx], idx)
-
-        for idx, arg in enumerate(args):
-            if not isinstance(arg, torch.Tensor):
-                continue
-            # TODO: inputs use the same t_annotation, but they may not be sharded in the same way.
-            self._rewrite_input(arg, idx)
+        if self.m_annotation.input_idx is not None:
+            idx: list[int] = self.m_annotation.input_idx
+            for i in idx:
+                self._rewrite_input(args[i], i)
+        else:  # TODO: can force use must provide input_idx
+            for i, arg in enumerate(args):
+                if not isinstance(arg, torch.Tensor):
+                    continue
+                # TODO: inputs use the same t_annotation, but they may not be sharded in the same way.
+                self._rewrite_input(arg, i)
     
 
 class FwdPostLogHook(ModuleHookBase):
@@ -198,6 +197,40 @@ class FwdPostLogHook(ModuleHookBase):
             for idx, activation in enumerate(output):
                 if isinstance(activation, torch.Tensor):
                     self._log_output(activation, idx)
+
+
+class FwdPostRewriteHook(ModuleHookBase):
+    def _rewrite_output(self, tensor: torch.Tensor, idx: int = 0) -> None:
+        assert isinstance(tensor, torch.Tensor), "fwd_post_rewrite expects a tensor"
+        canon_act_name = self.get_canon_act_grad_name("output", idx)
+        shard_slice = canonical.infer_slice(tensor.shape, self.t_annotation)
+        new_activation = neck.random.rand(canon_act_name, shard_slice)
+        new_activation = 0.02 * (new_activation-0.5)  # rescale to [-0.01, 0.01]
+        tensor.data = new_activation.data.to(tensor.dtype).to(tensor.device)
+
+    def __call__(
+        self,
+        module: torch.nn.Module,
+        args: tuple,
+        output: torch.Tensor | tuple,
+    ):
+        # checkings
+        if self.module is not None:
+            assert module == self.module, f"module mismatch in {self.canon_mod_name} post log"
+        assert isinstance(output, torch.Tensor) or isinstance(output, tuple), \
+            "fwd_post_log expects a tensor or a tuple of tensors" 
+        
+        if isinstance(output, torch.Tensor):
+            self._rewrite_output(output, 0)
+        elif self.m_annotation.output_idx is not None:
+            idx = self.m_annotation.output_idx
+            activation = output[idx]
+            assert isinstance(activation, torch.Tensor), "fwd_post_log expects a tensor"
+            self._rewrite_output(activation, idx)
+        else:
+            for idx, activation in enumerate(output):
+                if isinstance(activation, torch.Tensor):
+                    self._rewrite_output(activation, idx)
 
 
 class BwdPreLogHook(ModuleHookBase):
@@ -329,6 +362,17 @@ def register_hook(
     if annotation.output is not None:
         module.register_forward_hook(
             FwdPostLogHook(
+                canon_mod_name,
+                annotation.output,
+                annotation,
+                module,
+                vp_rank,
+            )
+        )
+    
+    if annotation.rewrite_output:
+        module.register_forward_hook(
+            FwdPostRewriteHook(
                 canon_mod_name,
                 annotation.output,
                 annotation,

@@ -67,6 +67,7 @@ class ModuleAnnotation:
     input_idx: Optional[int] = None
     output_idx: Optional[int] = None
     rewrite_input: Optional[bool] = False
+    rewrite_output: Optional[bool] = False
     rewrite_grad_output: Optional[bool] = False
     grad: Optional[OmegaConf] = None
     fusion: Optional[list[str]] = None
