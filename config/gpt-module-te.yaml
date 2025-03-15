@@ -16,14 +16,14 @@
 
 
 word_embeddings:
-  input:  # [batch_size, seq_len]
+  input:  # [batch_size, seq_len]  # could rewrite to ctrl data
     tp_dim: null
     cp_dim: 1
   output:  # [batch_size, seq_len / cp_size, hidden_size]
     tp_dim: null
     cp_dim: 1
 
-embedding:
+embedding:  # no need to rewrite its output
   output:  # [seq_len / cp_size / tp_size, batch_size, hidden_size]
     tp_dim: null
     cp_dim: 0
@@ -47,22 +47,23 @@ self_attention.linear_qkv:
   fusion:  # NOTE: string replacement, use full name and share common prefix
     - input_layernorm
     - self_attention.linear_qkv
-  input:
+  input:  # same as embedding output even with SP, CP, could skip
     tp_dim: null
     cp_dim: 0
     sp_dim: 0
-  output:
+  output:  # could rewrite output
     tp_dim: -1
     cp_dim: 0
   grad:
     input: True
     output: True
 
-self_attention.core_attention: 
+self_attention.core_attention:
+  # reshape & split of linear_qkv output, no need to rewrite input
   input:  # Q, K, V, [seq, bs, n_head, d_head]
     tp_dim: -2  # share the same tp dim, can make it finer by having a list
     cp_dim: 0
-  output:
+  output:  # could rewrite output
     tp_dim: -1
     cp_dim: 0
   input_idx: [0, 1, 2]  # Q, K, V, mask, and we don't want mask
@@ -71,7 +72,7 @@ self_attention.core_attention:
     output: True
 
 self_attention.linear_proj:
-  output:
+  output:  # could rewrite output
     tp_dim: null
     cp_dim: 0
     sp_dim: 0
@@ -95,10 +96,12 @@ pre_mlp_layernorm:
     output: True
 
 mlp.linear_fc1:  # if record input, then input has sp dim 0
+  # TODO: input should be recorded because layernorm being fused
+  # no need to rewrite input bc attn output has been rewritten
   fusion:
     - pre_mlp_layernorm
     - mlp.linear_fc1
-  output: 
+  output:  # could rewrite output
     tp_dim: -1  # (seq_len, batch_size, hidden_size)
     cp_dim: 0
   output_idx: 0  # 1 is output_bias
@@ -109,7 +112,7 @@ mlp.linear_fc2:
   input:
     tp_dim: -1
     cp_dim: 0
-  output:
+  output:  # could rewrite output
     tp_dim: null
     cp_dim: 0
     sp_dim: 0
@@ -119,7 +122,7 @@ mlp.linear_fc2:
     output: True
 
 layers.\d:
-  output:
+  output:  # no need to rewrite, rewritten by mlp.linear_fc2
     tp_dim: null
     cp_dim: 0
     sp_dim: 0
