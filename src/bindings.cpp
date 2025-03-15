@@ -1,5 +1,5 @@
 #include <pybind11/pybind11.h>
-#include "random_backend.h"
+#include "random_backend.hpp"
 #include "rel_err.hpp"
 
 namespace py = pybind11;

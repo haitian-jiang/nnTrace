@@ -1,7 +1,7 @@
 #include <algorithm>
 #include <execution>
 #include <omp.h>
-#include "random_backend.h"
+#include "random_backend.hpp"
 
 /*
 Bit mixing random number generator.  Cannot use linear congruential generator.
