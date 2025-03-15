@@ -43,7 +43,7 @@ def _merge_logs(
         ):
             return c_name, TensorInfo.add_tensor_info(log_shards)
         else:
-            clog.error(f"Conflicting full tensors: {c_name}, not merged.")
+            clog.error(f"{t_type}: Conflicting full tensors: {c_name}, not merged.")
             # TODO: Can decide what to store in the merged logs later.
             return None  # to pass my own c_name integrity checking
     else:  # shard tensors
@@ -74,22 +74,27 @@ def _merge_distr_logs(log_path: str, t_type: TType) -> None:
     
     # merge logs in parallel
     # dict[str, list[TensorInfo]] -> dict[str, TensorInfo|None]
-    num_task = len(log_collections)
-    output_list = [None] * num_task
-    with ProcessPoolExecutor() as executor:
-        futures = {
-            executor.submit(_merge_logs, c_name, log_shards, t_type): i
-            for (i, (c_name, log_shards)) in enumerate(log_collections.items())
-        }
-        pbar = tqdm(total=num_task, desc=f"Merging {t_type} logs")
-        for future in as_completed(futures):
-            i = futures[future]
-            output_list[i] = future.result()
-            pbar.update(1)
-        pbar.close()
+    # num_task = len(log_collections)
+    # output_list = [None] * num_task
+    # with ProcessPoolExecutor() as executor:
+    #     futures = {
+    #         executor.submit(_merge_logs, c_name, log_shards, t_type): i
+    #         for (i, (c_name, log_shards)) in enumerate(log_collections.items())
+    #     }
+    #     pbar = tqdm(total=num_task, desc=f"Merging {t_type} logs", 
+    #                 position=list(TType).index(t_type), leave=True)
+    #     for future in as_completed(futures):
+    #         i = futures[future]
+    #         output_list[i] = future.result()
+    #         pbar.update(1)
+    #     pbar.close()
 
     # clean up and save
-    merged_logs: dict[str, TensorInfo | None] = dict(output_list)
+    # merged_logs: dict[str, TensorInfo | None] = dict(output_list)
+
+    merged_logs = {}
+    for c_name, log_shards in tqdm(log_collections.items()):
+        merged_logs[c_name] = _merge_logs(c_name, log_shards, t_type)[1]
     
     for canonical_name in canonical_names:
         assert canonical_name in merged_logs
@@ -116,3 +121,11 @@ def merge_distr_logs(log_path: str, t_type: Optional[TType] = None) -> None:
 
     for t_type in running_ttypes:
         _merge_distr_logs(log_path, t_type)
+
+    # with ProcessPoolExecutor() as executor:
+    #     futures = {
+    #         executor.submit(_merge_distr_logs, log_path, t_type): t_type
+    #         for t_type in running_ttypes
+    #     }
+    #     for future in as_completed(futures):
+    #         future.result()

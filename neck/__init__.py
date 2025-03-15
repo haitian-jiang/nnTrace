@@ -10,9 +10,12 @@ from .structs import get_annotation
 from . import structs
 from . import interface
 from . import config
-from . import random
 from . import canonical
 from . import logger
+# must put cpp_ext after modules using pytorch, 
+# otherwise torch will have error.
+from . import cpp_ext
+from . import random
 from . import inspector
 
 
@@ -26,8 +29,9 @@ __all__ = [
     "structs",
     "config",
     "interface",
-    "random",
     "canonical",
     "logger",
+    "cpp_ext",
+    "random",
     "inspector",
 ]

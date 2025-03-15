@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.12)
 set(CMAKE_CXX_STANDARD 17)
-project(random_backend)
+project(cpp_ext)
 
 # Set the Python executable to the one in the conda environment
 set(Python3_EXECUTABLE $ENV{CONDA_PREFIX}/bin/python)  # need if/else for non-conda env

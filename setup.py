@@ -14,7 +14,7 @@ class CMakeBuild(build_ext):
             self.build_extension(ext)
 
     def build_extension(self, ext):
-        extdir = os.path.abspath(os.path.join(self.get_ext_fullpath(ext.name), "..", "neck", "random"))
+        extdir = os.path.abspath(os.path.join(self.get_ext_fullpath(ext.name), "..", "neck"))
         cmake_args = [
             f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={extdir}",
             # f"-DPYTHON_EXECUTABLE={sys.executable}",
@@ -36,11 +36,11 @@ class CMakeBuild(build_ext):
 
 setup(
     name="neck",
-    version="0.1.0",
+    version="0.2.0",
     author="Haitian Jiang",
     author_email="haitian.jiang@nyu.edu",
     description="Neural Networks Equivalence Checking",
-    ext_modules=[CMakeExtension("random_backend")],
+    ext_modules=[CMakeExtension("cpp_ext")],
     cmdclass={"build_ext": CMakeBuild},
     packages=["neck"],
     zip_safe=False,

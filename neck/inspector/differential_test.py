@@ -8,7 +8,8 @@ from neck.structs import TType
 from loguru import logger as clog
 from tqdm import tqdm
 from typing import Optional
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, as_completed, ThreadPoolExecutor
+from neck import cpp_ext as neck_backend
 
 
 import re
@@ -74,17 +75,24 @@ def get_err_raw(
     ncpu = os.cpu_count()
     clog.info(f"Start calculating errors for {t_type}!")
 
-    with ProcessPoolExecutor(max_workers=ncpu) as executor:
-        futures = {
-            executor.submit(_err_fn, data): i 
-            for i, data in enumerate(input_list)
-        }
-        pbar = tqdm(total=num_task, desc=f"Calculating {t_type} errors")
-        for future in as_completed(futures):
-            i = futures[future]
-            output_list[i] = future.result()
-            pbar.update(1)
-        pbar.close()
+    for i, (name, specimen, oracle) in enumerate(tqdm(input_list)):
+        output_list[i] = neck_backend.tensor_rel_err_with_name(name, specimen, oracle)
+
+    # with ThreadPoolExecutor(max_workers=ncpu) as executor:
+    #     futures = {
+    #         executor.submit(
+    #             neck_backend.tensor_rel_err_with_name, 
+    #             name, specimen, oracle
+    #         ): i 
+    #         for i, (name, specimen, oracle) in enumerate(input_list)
+    #     }
+    #     pbar = tqdm(total=num_task, desc=f"Calculating {t_type} errors", 
+    #                 position=list(TType).index(t_type), leave=True)
+    #     for future in as_completed(futures):
+    #         i = futures[future]
+    #         output_list[i] = future.result()
+    #         pbar.update(1)
+    #     pbar.close()
     return dict(output_list)
 
 
@@ -139,22 +147,30 @@ def conduct_differential_test(
         if not (output_dir / f"{t_type}.pt").exists()
     ]
 
-    with ProcessPoolExecutor() as executor:
-        futures = {
-            t_type: executor.submit(
-                _get_err_raw_and_store_result,
-                specimen_run_dir / f"{t_type}.pt",
-                oracle_run_dir / f"{t_type}.pt",
-                output_dir,
-                t_type,
-            )
-            for t_type in running_ttypes
-        }
-        results = {
-            t_type: future.result()
-            for t_type, future in futures.items()
-        }
-        assert all(results.values()), "Some tasks failed!"
+    for t_type in running_ttypes:
+        _get_err_raw_and_store_result(
+            specimen_run_dir / f"{t_type}.pt",
+            oracle_run_dir / f"{t_type}.pt",
+            output_dir,
+            t_type,
+        )
+
+    # with ProcessPoolExecutor() as executor:
+    #     futures = {
+    #         t_type: executor.submit(
+    #             _get_err_raw_and_store_result,
+    #             specimen_run_dir / f"{t_type}.pt",
+    #             oracle_run_dir / f"{t_type}.pt",
+    #             output_dir,
+    #             t_type,
+    #         )
+    #         for t_type in running_ttypes
+    #     }
+    #     results = {
+    #         t_type: future.result()
+    #         for t_type, future in futures.items()
+    #     }
+    #     assert all(results.values()), "Some tasks failed!"
 
 
 __all__ = [
