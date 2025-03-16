@@ -1,10 +1,14 @@
 # Import individuals then import modules, otherwise circular import error.
 from .config import CONFIG
-from .interface import (
+from .interface import (  # run time API
     reinit_model,
     register_model_hooks,
     log_main_grad,
     parse_framework_config,
+)
+from .inspector import (  # test time API
+    merge_distr_logs,
+    conduct_differential_test,
 )
 from .structs import get_annotation
 from . import structs
@@ -25,6 +29,8 @@ __all__ = [
     "register_model_hooks",
     "log_main_grad",
     "parse_framework_config",
+    "merge_distr_logs",
+    "conduct_differential_test",
     "get_annotation",
     "structs",
     "config",

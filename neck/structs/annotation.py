@@ -79,6 +79,10 @@ class ModuleAnnotation:
             if field in ("input", "output"):
                 value = TensorAnnotation.from_dict(value)
             setattr(annotation, field, value)
+        if CONFIG.neck.rewrite is False:
+            annotation.rewrite_input = False
+            annotation.rewrite_output = False
+            annotation.rewrite_grad_output = False
         return annotation
 
 

@@ -10,17 +10,21 @@ annotations:
   module: "./gpt-module-te.yaml"
 
 architecture:
-  # num_layers: 24  # can be overwritten by the model config
   vocab_size: 50257
-  # hidden_size: 1024   # can be overwritten by the model config
-  # num_attention_heads: 16  # can be overwritten by the model config
-  # seq_length: 1024
-  # share_embeddings_and_output_weights: True
-  # datatype: "bf16"
-
-
+  # --- below will be replaced by megatron's args at run time --- #
+  num_layers: 24
+  hidden_size: 1024
+  num_attention_heads: 16
+  seq_length: 1024
+  share_embeddings_and_output_weights: True
+  datatype: "bf16"
 
 parallel:
   framework: "Megatron-LM"
   num_microbatches: 4  # for megatron, because cannot get it from runtime
-  # sequence_parallel: False  # cannot get this from runtime
+  # --- below will be replaced by megatron's args at run time --- #
+  sequence_parallel: False
+  calculate_per_token_loss: False
+
+neck:
+  rewrite: True

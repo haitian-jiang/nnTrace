@@ -66,7 +66,6 @@ def get_err_raw(
     clog.info(f"Start calculating errors for {t_type}!")
     # list[tuple[str, Tensor, Tensor]] -> list[tuple[str, double]]
     output_list = neck_backend.parallel_rel_err(input_list)
-    clog.info(f"Finished calculating errors for {t_type}!")
 
     return dict(output_list)
 

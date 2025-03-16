@@ -322,8 +322,11 @@ def _finalize_model_grads_megatron(
 
 
 log_hook_megatron = [_finalize_model_grads_megatron]  
-if True:  # TODO: change to NO calculate-per-tok-loss
+if not CONFIG.parallel.calculate_per_token_loss and not CONFIG.neck.rewrite:
     # NOTE: mostly cp_size will be a power of 2, so the division is exact.
+    # the hooks below are added because Megatron will rescale loss or the
+    # output_tensor in PP.  If gradients are cutoff and rewritten, the change
+    # in loss or output tensor will not propagate downwards to the gradients.
     log_hook_megatron.append(_rescale_grad_for_pp_microbatch_hook)
     log_hook_megatron.append(_rescale_grad_for_loss_cp_rescale_hook)
 
