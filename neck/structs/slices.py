@@ -1,6 +1,6 @@
 from typing import Sequence, Optional, Union, Iterable
 import torch
-
+import numpy as np
 
 class NeckSlice:  # immutable slice, replace `slice`, not support step yet.
     def __init__(self, start: int, stop: int):
@@ -68,6 +68,13 @@ class NDSlice(tuple):
     @property
     def pyslice(self) -> tuple[slice, ...]:
         return tuple(s.pyslice for s in self)
+
+    @property
+    def multi_index(self) -> tuple[np.ndarray]:
+        # Generate indices for the slice shape, all startes from 0
+        indices = np.indices(self.shape)
+        # Adjust each dimension's indices to start from the slice's start position
+        return tuple(indices[i] + s.start for i, s in enumerate(self))
 
 
 class ShardSlice:
