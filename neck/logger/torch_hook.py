@@ -18,6 +18,14 @@ _fwd_pass_cnt = defaultdict(lambda: -1)  # Counting from 0
 _bwd_pass_cnt = defaultdict(lambda: -1)
 
 
+__doc__ = """
+Log hooks (either forward or backward) should only log unmodified tensors.
+Rewrite hooks should always happen after log hooks.
+Whenever there is a rewrite hook, there should be a log hook before it.
+Sparsify hooks should happen after log hooks and rewrite hooks.
+"""
+
+
 class ModuleHookBase:
     def __init__(
             self, 
@@ -269,21 +277,33 @@ class BwdPreRewriteHook(ModuleHookBase):
     There should not be any weight gradient, so can safely rewrite the 
     grad_output.  Should always use this to rewrite.
     """
+    def _rewrite_grad_output(self, grad: torch.Tensor, idx: int) -> None:
+        assert isinstance(grad, torch.Tensor), \
+            f"bwd pre hook get non tensor: {type(grad)}"
+        canon_grad_name = self.get_canon_act_grad_name("output", idx, True)
+        shard_slice = canonical.infer_slice(grad.shape, self.t_annotation)
+        new_grad = neck.random.rand(canon_grad_name, shard_slice)
+        new_grad = 0.02 * (new_grad - 0.5)  # rescale to [-0.01, 0.01]
+        grad.data = new_grad.data.to(grad.dtype).to(grad.device)
+
     def __call__(
         self,
         module: torch.nn.Module,
         grad_output: tuple[torch.Tensor],
     ) -> None:
-        for idx, grad in enumerate(grad_output):
+        if self.m_annotation.output_idx is not None:
+            i = self.m_annotation.output_idx
+            grad = grad_output[i]
+            assert isinstance(grad, torch.Tensor), \
+                f"Got {type(grad)} grad_output in {self.canon_mod_name}"
+            self._rewrite_grad_output(grad, i)
+            return
+        for i, grad in enumerate(grad_output):
             if grad is None:
                 continue
             assert isinstance(grad, torch.Tensor), \
                 f"bwd pre hook get non tensor: {type(grad)}"
-            canon_grad_name = self.get_canon_act_grad_name("output", idx, True)
-            shard_slice = canonical.infer_slice(grad.shape, self.t_annotation)
-            new_grad = neck.random.rand(canon_grad_name, shard_slice)
-            new_grad = new_grad - 0.5  # rescale to [-1/2, 1/2]
-            grad.data = new_grad.data.to(grad.dtype).to(grad.device)
+            self._rewrite_grad_output(grad, i)
 
 
 class BwdPostLogHook(ModuleHookBase):
@@ -401,7 +421,7 @@ def register_hook(
     if annotation.rewrite_grad_output:
         assert annotation.output is not None, \
             f"Cannot rewrite output without tensor annotation: {canon_mod_name}"
-        module.register_full_pre_backward_hook(
+        module.register_full_backward_pre_hook(
             BwdPreRewriteHook(
                 canon_mod_name,
                 annotation.output,

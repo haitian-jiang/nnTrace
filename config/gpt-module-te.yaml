@@ -54,6 +54,8 @@ self_attention.linear_qkv:
   output:  # could rewrite output
     tp_dim: -1
     cp_dim: 0
+  rewrite_output: True
+  rewrite_grad_output: True
   grad:
     input: True
     output: True
@@ -66,6 +68,8 @@ self_attention.core_attention:
   output:  # could rewrite output
     tp_dim: -1
     cp_dim: 0
+  rewrite_output: True
+  rewrite_grad_output: True # needn't rewrite grad_input, same as linear_qkv g_out
   input_idx: [0, 1, 2]  # Q, K, V, mask, and we don't want mask
   grad:
     input: True
@@ -76,6 +80,8 @@ self_attention.linear_proj:
     tp_dim: null
     cp_dim: 0
     sp_dim: 0
+  rewrite_output: True
+  rewrite_grad_output: True
   output_idx: 0  # 1 is output_bias, directly copied from self.bias
   grad:
     output: True
@@ -105,6 +111,8 @@ mlp.linear_fc1:  # if record input, then input has sp dim 0
     tp_dim: -1  # (seq_len, batch_size, hidden_size)
     cp_dim: 0
   output_idx: 0  # 1 is output_bias
+  rewrite_output: True
+  rewrite_grad_output: True
   grad:
     output: True
 
@@ -117,16 +125,20 @@ mlp.linear_fc2:
     cp_dim: 0
     sp_dim: 0
   output_idx: 0  # 1 is output_bias
+  rewrite_output: True
+  rewrite_grad_output: True  # need to add checking that grad.output is True
   grad:
     input: True
     output: True
 
 layers.\d:
-  output:  # no need to rewrite, rewritten by mlp.linear_fc2
+  # no need to rewrite, rewritten by mlp.linear_fc2, 
+  # also no need log its grad, as is the same as mlp.linear_fc2's grad_output
+  output:
     tp_dim: null
     cp_dim: 0
     sp_dim: 0
   output_idx: 0
-  grad:
-    output: True
+  # grad:
+  #   output: True
 
