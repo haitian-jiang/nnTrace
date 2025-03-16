@@ -93,7 +93,11 @@ def _merge_distr_logs(log_path: str, t_type: TType) -> None:
     # merged_logs: dict[str, TensorInfo | None] = dict(output_list)
 
     merged_logs = {}
-    for c_name, log_shards in tqdm(log_collections.items()):
+    for c_name, log_shards in tqdm(
+        log_collections.items(), 
+        position=list(TType).index(t_type), 
+        desc=f"Merging {t_type} logs"
+    ):
         merged_logs[c_name] = _merge_logs(c_name, log_shards, t_type)[1]
     
     for canonical_name in canonical_names:
@@ -119,13 +123,13 @@ def merge_distr_logs(log_path: str, t_type: Optional[TType] = None) -> None:
     else:
         running_ttypes = list(TType)
 
-    for t_type in running_ttypes:
-        _merge_distr_logs(log_path, t_type)
+    # for t_type in running_ttypes:
+    #     _merge_distr_logs(log_path, t_type)
 
-    # with ProcessPoolExecutor() as executor:
-    #     futures = {
-    #         executor.submit(_merge_distr_logs, log_path, t_type): t_type
-    #         for t_type in running_ttypes
-    #     }
-    #     for future in as_completed(futures):
-    #         future.result()
+    with ProcessPoolExecutor() as executor:
+        futures = {
+            executor.submit(_merge_distr_logs, log_path, t_type): t_type
+            for t_type in running_ttypes
+        }
+        for future in as_completed(futures):
+            future.result()

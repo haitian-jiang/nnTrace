@@ -6,7 +6,7 @@ from pathlib import Path
 from neck.structs import TType
 from loguru import logger as clog
 from typing import Optional
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
 from neck import cpp_ext as neck_backend
 
 
@@ -122,7 +122,7 @@ def conduct_differential_test(
         if not (output_dir / f"{t_type}.pt").exists()
     ]
 
-    with ThreadPoolExecutor() as executor:
+    with ProcessPoolExecutor() as executor:
         futures = {
             t_type: executor.submit(
                 _get_err_raw_and_store_result,
