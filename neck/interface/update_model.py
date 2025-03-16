@@ -1,12 +1,12 @@
 import torch
 import neck.canonical as canonical
 from typing import Optional
-from .reinit_model import _check_vp_rank
-from neck.structs import get_annotation, TensorInfo, ShardNDSlices, TType
+from .initialize_model import _check_vp_rank
+from neck.structs import get_annotation, TensorInfo, TType
 from neck.logger import log_tensor
 
 
-def log_main_grad(
+def prior_optim_logging(
         model: torch.nn.Module,
         vp_rank: Optional[int] = None,
     ) -> None:

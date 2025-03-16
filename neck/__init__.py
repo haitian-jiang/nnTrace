@@ -3,7 +3,7 @@ from .config import CONFIG
 from .interface import (  # run time API
     reinit_model,
     register_model_hooks,
-    log_main_grad,
+    prior_optim_logging,
     parse_framework_config,
 )
 from .inspector import (  # test time API
@@ -27,7 +27,7 @@ __all__ = [
     "CONFIG",
     "reinit_model",
     "register_model_hooks",
-    "log_main_grad",
+    "prior_optim_logging",
     "parse_framework_config",
     "merge_distr_logs",
     "conduct_differential_test",

@@ -14,8 +14,8 @@ import neck.canonical as canonical
 import neck.random
 
 
-_fwd_pass_cnt = defaultdict(lambda: -1)  # Counting from 0
-_bwd_pass_cnt = defaultdict(lambda: -1)
+fwd_pass_cnt = defaultdict(lambda: -1)  # Counting from 0
+bwd_pass_cnt = defaultdict(lambda: -1)
 
 
 __doc__ = """
@@ -53,10 +53,10 @@ class ModuleHookBase:
         assert i_o_ in ("input", "output"), "Invalid input/output type"
         if is_grad:
             t_type = TType.g_activ
-            called_times = _bwd_pass_cnt[self.vp_rank]
+            called_times = bwd_pass_cnt[self.vp_rank]
         else:
             t_type = TType.activ
-            called_times = _fwd_pass_cnt[self.vp_rank]
+            called_times = fwd_pass_cnt[self.vp_rank]
 
         g_batch_id = canonical.calc_global_batch_id(
             called_times,
@@ -457,9 +457,9 @@ class BatchCounterHook:
 
     def __call__(self, module: torch.nn.Module, args: tuple):
         if self.is_fwd:
-            _fwd_pass_cnt[self.vp_rank] += 1
+            fwd_pass_cnt[self.vp_rank] += 1
         else:
-            _bwd_pass_cnt[self.vp_rank] += 1
+            bwd_pass_cnt[self.vp_rank] += 1
 
 
 def regist_batch_cnt_hook(
@@ -504,7 +504,7 @@ class ParamLogHook:
 
     def _get_canon_param_grad_name(self) -> str:
         g_batch_id = canonical.calc_global_batch_id(
-            _bwd_pass_cnt[self.vp_rank],
+            bwd_pass_cnt[self.vp_rank],
             self.dp_size,
             self.dp_rank,
         )
