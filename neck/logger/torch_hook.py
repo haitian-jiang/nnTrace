@@ -16,6 +16,20 @@ import neck.random
 
 fwd_pass_cnt = defaultdict(lambda: -1)  # Counting from 0
 bwd_pass_cnt = defaultdict(lambda: -1)
+iter_cnt = 0  # also counting from 0 in consistency with the batch counter
+
+
+def update_iter_batch_cnt() -> None:
+    global iter_cnt
+    iter_cnt += 1
+    for vp_rank in fwd_pass_cnt.keys():
+        fwd_pass_cnt[vp_rank] = -1
+    for vp_rank in bwd_pass_cnt.keys():
+        bwd_pass_cnt[vp_rank] = -1
+
+
+def get_param_logging_cname(canon_param_name: str) -> str:
+    return f"iter.{iter_cnt}|{canon_param_name}"
 
 
 __doc__ = """
@@ -78,7 +92,8 @@ class ModuleHookBase:
                     self.m_annotation.fusion[-1]
                 )
 
-        return f"batch.{g_batch_id}|{module_name}|{t_type}.{i_o_}.{idx}"
+        return f"iter.{iter_cnt}|batch.{g_batch_id}|" \
+               f"{module_name}|{t_type}.{i_o_}.{idx}"
 
     def get_tensor_info(
             self, 
@@ -508,7 +523,7 @@ class ParamLogHook:
             self.dp_size,
             self.dp_rank,
         )
-        return f"batch.{g_batch_id}|{self.canon_param_name}"
+        return f"iter.{iter_cnt}|batch.{g_batch_id}|{self.canon_param_name}"
 
     def __call__(
         self,
@@ -524,3 +539,22 @@ class ParamLogHook:
                     if self.fw_canon_name else {},
         )
         log_tensor(canonical_grad_name, TType.g_param, tensor_info)
+
+
+__all__ = [
+    #--- hook classes ---#
+    "FwdPreLogHook",
+    "FwdPreRewriteHook",
+    "FwdPostLogHook",
+    "FwdPostRewriteHook",
+    "BwdPreLogHook",
+    "BwdPreRewriteHook",
+    "BwdPostLogHook",
+    "BatchCounterHook",
+    "ParamLogHook",
+    #--- APIs ---#
+    "update_iter_batch_cnt",
+    "get_param_logging_cname",
+    "register_hook",
+    "regist_batch_cnt_hook",
+]

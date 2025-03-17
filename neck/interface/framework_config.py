@@ -22,6 +22,8 @@ def parse_framework_config(args) -> None:
         NECK_CONFIG.architecture.datatype = "fp16"
     if getattr(args, "calculate_per_token_loss", False):
         NECK_CONFIG.architecture.calculate_per_token_loss = True
+    if getattr(args, "use_distributed_optimizer", False):
+        NECK_CONFIG.parallel.use_distributed_optimizer = True
     try:
         from megatron.core.num_microbatches_calculator import get_num_microbatches
         NECK_CONFIG.parallel.num_microbatches = get_num_microbatches()

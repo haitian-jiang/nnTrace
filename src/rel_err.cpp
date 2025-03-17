@@ -23,15 +23,27 @@ tuple<string, double> tensor_rel_err_with_name(
     specimen_fp64.masked_fill_(mask, 0);
     oracle_fp64.masked_fill_(mask, 0);
 
-    Tensor rerr;
+    Tensor abs_err, oracle_norm, rerr;
     if (norm == "fro") {
-        rerr = (specimen_fp64 - oracle_fp64).norm() / oracle_fp64.norm();
+        abs_err = (specimen_fp64 - oracle_fp64).norm();
+        oracle_norm = oracle_fp64.norm();
     } else if (norm == "1") {
-        rerr = (specimen_fp64 - oracle_fp64).abs().sum() / oracle_fp64.abs().sum();
+        abs_err = (specimen_fp64 - oracle_fp64).abs().sum();
+        oracle_norm = oracle_fp64.abs().sum();
     } else if (norm == "inf") {
-        rerr = (specimen_fp64 - oracle_fp64).abs().max() / oracle_fp64.abs().max();
+        abs_err = (specimen_fp64 - oracle_fp64).abs().max();
+        oracle_norm = oracle_fp64.abs().max();
     } else {
         throw std::invalid_argument("Unsupported norm type: " + norm);
+    }
+    if (torch::allclose(oracle_norm, torch::zeros_like(oracle_norm))) {
+        if (torch::allclose(abs_err, torch::zeros_like(abs_err))) {
+            return std::make_tuple(name, 0);
+        } else {
+            return std::make_tuple(name, 615.0);
+        }
+    } else {
+        rerr = abs_err / oracle_norm;
     }
 
     return std::make_tuple(name, rerr.item<double>());

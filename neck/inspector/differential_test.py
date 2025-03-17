@@ -30,12 +30,21 @@ def tensor_rel_err(specimen, oracle, norm='fro'):
     specimen[mask] = 0
     oracle[mask] = 0
     if norm == 'fro':
-        rerr = (specimen - oracle).norm() / oracle.norm()
+        abs_err = (specimen - oracle).norm()
+        oracle_norm = oracle.norm()
     elif norm == '1':
-        rerr = (specimen - oracle).abs().sum() / oracle.abs().sum()
+        abs_err = (specimen - oracle).abs().sum()
+        oracle_norm = oracle.abs().sum()
     elif norm == 'inf':
-        rerr = (specimen - oracle).abs().max() / oracle.abs().max()
-    return rerr.item()
+        abs_err = (specimen - oracle).abs().max()
+        oracle_norm = oracle.abs().max()
+    if torch.allclose(oracle, torch.zeros_like(oracle)):
+        if torch.allclose(specimen, torch.zeros_like(specimen)):
+            return 0.0
+        else:
+            return 615.0
+    else:
+        return (abs_err / oracle_norm).item()
 
 
 def get_err_raw(

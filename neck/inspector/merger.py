@@ -45,7 +45,7 @@ def _merge_logs(
         else:
             clog.error(f"{t_type}: Conflicting full tensors: {c_name}, not merged.")
             # TODO: Can decide what to store in the merged logs later.
-            return None  # to pass my own c_name integrity checking
+            return c_name, None  # to pass my own c_name integrity checking
     else:  # shard tensors
         return c_name, TensorInfo.merge_tensor_info(log_shards)
         
@@ -107,7 +107,11 @@ def _merge_distr_logs(log_path: str, t_type: TType) -> None:
     clog.info(f"Saved merged logs to {merged_file_path}")
 
 
-def merge_distr_logs(log_path: str, t_type: Optional[TType] = None) -> None:
+def merge_distr_logs(
+        log_path: str, 
+        t_type: Optional[TType] = None,
+        parallel: bool = False,
+    ) -> None:
     """
     Merge the logs from different ranks into a single log file.
     Works for one specific tensor type.
@@ -123,13 +127,14 @@ def merge_distr_logs(log_path: str, t_type: Optional[TType] = None) -> None:
     else:
         running_ttypes = list(TType)
 
-    # for t_type in running_ttypes:
-    #     _merge_distr_logs(log_path, t_type)
-
-    with ProcessPoolExecutor() as executor:
-        futures = {
-            executor.submit(_merge_distr_logs, log_path, t_type): t_type
-            for t_type in running_ttypes
-        }
-        for future in as_completed(futures):
-            future.result()
+    if not parallel:
+        for t_type in running_ttypes:
+            _merge_distr_logs(log_path, t_type)
+    else:
+        with ProcessPoolExecutor() as executor:
+            futures = {
+                executor.submit(_merge_distr_logs, log_path, t_type): t_type
+                for t_type in running_ttypes
+            }
+            for future in as_completed(futures):
+                future.result()

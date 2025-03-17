@@ -52,6 +52,9 @@ def get_megatron_parallel_options() -> None:
     sp = CONFIG.parallel.get("sequence_parallel", None)
     if sp:
         CONFIG.parallel.types.append("sp")
+    zero1 = CONFIG.parallel.get("use_distributed_optimizer", None)
+    if zero1:
+        CONFIG.parallel.types.append("ZeRO-1")
 
 
 def to_canonical_param_mod_megatron(

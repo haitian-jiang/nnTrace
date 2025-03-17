@@ -37,7 +37,7 @@ def log_tensor(
         if torch.allclose(old_tensor, tensor_info.tensor):
             return
         else:
-            clog.error(f"Conflicting tensors when logging: {canonical_name}")
+            clog.error(f"{t_type}: Conflicting tensors when logging: {canonical_name}")
     destination[canonical_name] = tensor_info
 
 

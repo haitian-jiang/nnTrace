@@ -4,6 +4,7 @@ from .interface import (  # run time API
     reinit_model,
     register_model_hooks,
     prior_optim_logging,
+    post_optim_logging_reset,
     parse_framework_config,
 )
 from .inspector import (  # test time API
@@ -28,6 +29,7 @@ __all__ = [
     "reinit_model",
     "register_model_hooks",
     "prior_optim_logging",
+    "post_optim_logging_reset",
     "parse_framework_config",
     "merge_distr_logs",
     "conduct_differential_test",

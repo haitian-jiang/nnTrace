@@ -21,10 +21,11 @@ architecture:
 
 parallel:
   framework: "Megatron-LM"
-  num_microbatches: 4  # for megatron, because cannot get it from runtime
+  num_microbatches: 4  # for megatron, because cannot get it from runtime in old version
   # --- below will be replaced by megatron's args at run time --- #
   sequence_parallel: False
+  use_distributed_optimizer: False
   calculate_per_token_loss: False
 
 neck:
-  rewrite: True
+  rewrite: False

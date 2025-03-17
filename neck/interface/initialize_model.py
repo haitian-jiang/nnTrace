@@ -1,15 +1,7 @@
 import math
 import torch
 import torch.nn as nn
-import neck.canonical as canonical
 import neck.random
-from loguru import logger as clog
-from neck.logger import (
-    log_tensor, 
-    register_hook, 
-    regist_batch_cnt_hook, 
-    ParamLogHook,
-)
 from neck import CONFIG
 from typing import Optional
 from neck.structs import (
@@ -18,6 +10,18 @@ from neck.structs import (
     TensorAnnotation,
     ModuleAnnotation,
     TType,
+)
+from neck.canonical import (
+    get_parallel_states,
+    to_canonical_param_mod, 
+    infer_slice,
+)
+from neck.logger import (
+    log_tensor, 
+    register_hook, 
+    regist_batch_cnt_hook, 
+    get_param_logging_cname,
+    ParamLogHook,
 )
 
 
@@ -30,7 +34,7 @@ def _check_vp_rank(
     Used for reinit_model and register_model_hooks.
     """
     assert isinstance(model, nn.Module), "model must be a torch.nn.Module"
-    canonical.get_parallel_states()
+    get_parallel_states()
     if CONFIG.parallel.size.vp_size is None:
         assert vp_rank is None or vp_rank ==0, \
             "vp_rank must be None or 0 if virtual pipeline is not used"
@@ -67,7 +71,7 @@ def reinit_model(
         if "layer_norm" in name or "layernorm" in name:
             continue
         # canonical parameter of this framework, need to convert to fw agnostic
-        fw_canon_param_name = canonical.to_canonical_param_mod(name, vp_rank)
+        fw_canon_param_name = to_canonical_param_mod(name, vp_rank)
         annotation: TensorAnnotation = get_annotation(name, "param")
         assert annotation is not None, \
             f"Annotation not found for {name}"
@@ -81,13 +85,14 @@ def reinit_model(
         else:  
             canon_param_name = fw_canon_param_name
             fw_canon_param_name = None  # work as arg for ParamLogHook
-        shard_slice = canonical.infer_slice(param.shape, annotation)
+        shard_slice = infer_slice(param.shape, annotation)
 
         # reinitialize the parameter
         new_param = neck.random.rand(canon_param_name, shard_slice)
         # respect the original range
         if initialization == "kaiming_uniform":
             new_param = (2 * new_param - 1) / math.sqrt(shard_slice.full_shape[-1])
+        # TODO: other initialization
         new_param = new_param.to(param.dtype)
         param.data = new_param.data.to(param.device)
 
@@ -102,12 +107,13 @@ def reinit_model(
         )
 
         if log_params:
+            canon_param_logging_name = get_param_logging_cname(canon_param_name)
             tensor_info = TensorInfo(
                 tensor=new_param,
-                canonical_name=canon_param_name,
+                canonical_name=canon_param_logging_name,
                 shard_slice=shard_slice,
             )
-            log_tensor(canon_param_name, TType.param, tensor_info)
+            log_tensor(canon_param_logging_name, TType.param, tensor_info)
 
 
 def filter_module_annotation(m_annotation: ModuleAnnotation) -> ModuleAnnotation:
@@ -147,7 +153,7 @@ def register_model_hooks(
         if m_annotation is None or m_annotation.turnoff:
             continue
         m_annotation = filter_module_annotation(m_annotation)
-        canon_mod_name = canonical.to_canonical_param_mod(m_name, vp_rank)
+        canon_mod_name = to_canonical_param_mod(m_name, vp_rank)
         register_hook(module, canon_mod_name, m_annotation, vp_rank)
 
     regist_batch_cnt_hook(model, vp_rank, True)  # prepend
