@@ -67,6 +67,8 @@ def reinit_model(
         hasattr(model, "state_dict")
     ), "model has not been initialized"
 
+    sparsity = CONFIG.neck.get("param_sparsity", None)
+
     for name, param in model.named_parameters():
         if "layer_norm" in name or "layernorm" in name:
             continue
@@ -93,6 +95,9 @@ def reinit_model(
         if initialization == "kaiming_uniform":
             new_param = (2 * new_param - 1) / math.sqrt(shard_slice.full_shape[-1])
         # TODO: other initialization
+        if sparsity is not None and "norm" not in name and "linear" in name or "fc" in name:
+            mask = neck.random.rand_mask(canon_param_name, shard_slice, sparsity)
+            new_param = new_param * mask
         new_param = new_param.to(param.dtype)
         param.data = new_param.data.to(param.device)
 

@@ -29,3 +29,4 @@ parallel:
 
 neck:
   rewrite: False
+  param_sparsity: 0.5
