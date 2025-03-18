@@ -1,3 +1,3 @@
-from .rand_tensor import rand
+from .rand_tensor import rand, randn, rand_mask
 
-__all__ = ["rand"]
+__all__ = ["rand", "randn", "rand_mask"]

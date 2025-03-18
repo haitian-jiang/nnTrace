@@ -9,6 +9,8 @@ from ..cpp_ext import seed_to_rand_parallel
 def rand(
     name: str, 
     shard_slice: ShardNDSlices,
+    device="cpu",
+    dtype: torch.dtype = torch.float32,
     backend: str = "pytorch",
 ) -> torch.Tensor:
     """Generate a random tensor based on a unique name and shape.
@@ -18,15 +20,16 @@ def rand(
         shape (tuple): Shape of the full tensor
         slices (Tuple[slice]): Tuple of slices to return the random value.
                                If set to None, the full tensor will be returned.
-        backend (str): Backend for random tensor generation.  C++ is fast, numpy is slow.
+        backend (str): Backend for random tensor generation.  C++ is fast.
     """
 
     seed = xxhash.xxh64(name).intdigest()
     if backend == "pytorch":
-        g = torch.Generator()
+        g = torch.Generator(device=device)
         g.manual_seed(seed)
-        result = torch.zeros(shard_slice.local_shape)
-        virtual_full_matrix = torch.rand(shard_slice.full_shape, generator=g)
+        result = torch.zeros(shard_slice.local_shape, device=device)
+        virtual_full_matrix = torch.rand(shard_slice.full_shape, generator=g, 
+                                         device=device, dtype=dtype)
         for local_, global_ in shard_slice.slice_map.items():
             result[local_.pyslice] = virtual_full_matrix[global_.pyslice]
         return result.contiguous()
@@ -36,7 +39,10 @@ def rand(
     for local_, global_ in shard_slice.slice_map.items():
         # local_ and global_ have the same shape
         mul_index = global_.multi_index
-        linear_index = np.ravel_multi_index(mul_index, shard_slice.full_shape).astype(np.uint64)
+        linear_index = np.ravel_multi_index(
+            mul_index, 
+            shard_slice.full_shape
+        ).astype(np.uint64)
         linear_index_aggr[local_.pyslice] = linear_index
     
     # Create unique seed for each index. 
@@ -45,26 +51,52 @@ def rand(
     seeds = torch.from_numpy(seeds.astype(np.int64)).contiguous()
 
     if backend == "cxx":
-        return seed_to_rand_parallel(seeds)
+        return seed_to_rand_parallel(seeds).to(dtype).to(device)
     else:
         assert False, f"Backend {backend} is not supported."
 
 
 def randn(
     name: str,
-    shape: tuple,
-    slices: Optional[tuple[slice, ...]] = None,
-    backend: str = "pytorch",
+    shard_slice: ShardNDSlices,
+    device="cpu",
+    dtype: torch.dtype = torch.float32,
 ) -> torch.Tensor:
     """Generate a random tensor based on a unique name and shape."""
-    if slices is None:
-        slices = tuple(slice(0, d) for d in shape)
     seed = xxhash.xxh64(name).intdigest()
-    if backend == "pytorch":
-        g = torch.Generator()
-        g.manual_seed(seed)
-        full_tensor = torch.randn(shape, generator=g)
-        slice_tensor = full_tensor[slices]
-        return slice_tensor.contiguous()
-    else:
-        assert False, f"Backend {backend} is not supported."
+    g = torch.Generator(device=device)
+    g.manual_seed(seed)
+    result = torch.zeros(shard_slice.local_shape, device=device)
+    virtual_full_matrix = torch.randn(shard_slice.full_shape, generator=g, 
+                                      device=device, dtype=dtype)
+    for local_, global_ in shard_slice.slice_map.items():
+        result[local_.pyslice] = virtual_full_matrix[global_.pyslice]
+    return result.contiguous()
+
+
+def rand_mask(
+    name: str,
+    shard_slice: ShardNDSlices,
+    p: float = 1.0,
+    device="cpu",
+) -> torch.Tensor:
+    """
+    Args:
+        p: Probability of being reserved.
+
+    Returns:
+        torch.Tensor: A boolean tensor with True at the reserved positions.
+    """
+    seed = xxhash.xxh64(name).intdigest()
+    g = torch.Generator(device=device)
+    g.manual_seed(seed)
+    result = torch.zeros(shard_slice.local_shape, 
+                         dtype=torch.bool, device=device)
+    virtual_full_matrix = torch.rand(shard_slice.full_shape, 
+                                     generator=g, device=device) < p
+    for local_, global_ in shard_slice.slice_map.items():
+        result[local_.pyslice] = virtual_full_matrix[global_.pyslice]
+    return result.contiguous()
+
+
+__all__ = ["rand", "randn", "rand_mask"]

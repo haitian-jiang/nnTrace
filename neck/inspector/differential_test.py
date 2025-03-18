@@ -89,7 +89,7 @@ def _get_err_raw_and_store_result(
     torch.save(err_dict, output_dir / f"{t_type}.pt")
     with open(output_dir / f"{t_type}.log", "w") as f:
         for name, err in err_dict.items():  # TODO: hard-coded 2**-7
-            print(f"{name:<90} {err:.4e} {err/2**-7:10.1f}", file=f)
+            print(f"{name:<100} {err:.4e} {err/2**-7:10.2f}", file=f)
     clog.info(f"Finished storing error results for {t_type}!")
     return True  # success
 
