@@ -26,9 +26,9 @@ from neck.logger import (
 
 
 def _check_vp_rank(
-        model: torch.nn.Module,
-        vp_rank: Optional[int] = None,
-    ):
+    model: torch.nn.Module,
+    vp_rank: Optional[int] = None,
+):
     """
     Check the model and virtual pipeline rank are valid.
     Used for reinit_model and register_model_hooks.
@@ -48,11 +48,11 @@ def _check_vp_rank(
 
 
 def reinit_model(
-        model: torch.nn.Module, 
-        vp_rank: Optional[int] = None,
-        log_params: bool = True,
-        initialization: str = "kaiming_uniform",
-    ) -> None:
+    model: torch.nn.Module, 
+    vp_rank: Optional[int] = None,
+    log_params: bool = True,
+    initialization: str = "kaiming_uniform",
+) -> None:
     """
     Reinitialize the model parameter tensors to be consistent.  
     Virtual pipeline rank cannot be inferred, so it must be provided.
@@ -139,9 +139,9 @@ def filter_module_annotation(m_annotation: ModuleAnnotation) -> ModuleAnnotation
 
 
 def register_model_hooks(
-        model: torch.nn.Module,
-        vp_rank: Optional[int] = None,
-    ):
+    model: torch.nn.Module,
+    vp_rank: Optional[int] = None,
+):
     """
     Register hooks to log activations / grads during forward / backward pass.
     """
@@ -158,3 +158,9 @@ def register_model_hooks(
 
     regist_batch_cnt_hook(model, vp_rank, True)  # prepend
     regist_batch_cnt_hook(model, vp_rank, False)  # prepend
+
+
+__all__ = [
+    "reinit_model",
+    "register_model_hooks",
+]

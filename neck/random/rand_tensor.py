@@ -7,10 +7,10 @@ from ..cpp_ext import seed_to_rand_parallel
 
 
 def rand(
-        name: str, 
-        shard_slice: ShardNDSlices,
-        backend: str = "pytorch",
-    ) -> torch.Tensor:
+    name: str, 
+    shard_slice: ShardNDSlices,
+    backend: str = "pytorch",
+) -> torch.Tensor:
     """Generate a random tensor based on a unique name and shape.
 
     Args:
@@ -51,11 +51,11 @@ def rand(
 
 
 def randn(
-        name: str,
-        shape: tuple,
-        slices: Optional[tuple[slice, ...]] = None,
-        backend: str = "pytorch",
-    ) -> torch.Tensor:
+    name: str,
+    shape: tuple,
+    slices: Optional[tuple[slice, ...]] = None,
+    backend: str = "pytorch",
+) -> torch.Tensor:
     """Generate a random tensor based on a unique name and shape."""
     if slices is None:
         slices = tuple(slice(0, d) for d in shape)

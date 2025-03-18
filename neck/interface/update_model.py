@@ -7,9 +7,9 @@ from neck.logger import log_tensor, update_iter_batch_cnt, get_param_logging_cna
 
 
 def prior_optim_logging(
-        model: torch.nn.Module,
-        vp_rank: Optional[int] = None,
-    ) -> None:
+    model: torch.nn.Module,
+    vp_rank: Optional[int] = None,
+) -> None:
     """
     Log the main gradient of the model parameters before the optimizer step.
     """
@@ -35,9 +35,9 @@ def prior_optim_logging(
 
 
 def post_optim_logging_reset(
-        model: torch.nn.Module,
-        vp_rank: Optional[int] = None,    
-    ) -> None:
+    model: torch.nn.Module,
+    vp_rank: Optional[int] = None,    
+) -> None:
     """
     Log the new parameters after weight update to check whether there are bugs
     in the optimizer. Best if lr is large (like 1 or larger), just for checking.
@@ -66,3 +66,9 @@ def post_optim_logging_reset(
         )
         log_tensor(canon_param_logging_name, TType.param, tensor_info)
         # TODO: optionally rewrite the param.data with the consistent value
+
+
+__all__ = [
+    "prior_optim_logging",
+    "post_optim_logging_reset",
+]

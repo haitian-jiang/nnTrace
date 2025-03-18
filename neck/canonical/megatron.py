@@ -137,9 +137,9 @@ def to_canonical_param_mod_megatron(
 
 
 def infer_slice_megatron(
-        local_shape: torch.Size,
-        annotation: Optional[TensorAnnotation] = None,
-    ) -> ShardNDSlices:
+    local_shape: torch.Size,
+    annotation: Optional[TensorAnnotation] = None,
+) -> ShardNDSlices:
     """
     The mapping from TP / SP ranks to the slice of tensor in Megatron.
     """
@@ -237,8 +237,8 @@ def infer_slice_megatron(
 
 
 def trim_word_embeddings_megatron(
-        info_dict: dict[str, TensorInfo],
-    ) -> dict[str, TensorInfo]:
+    info_dict: dict[str, TensorInfo],
+) -> dict[str, TensorInfo]:
     for c_name, info in info_dict.items():
         if ("word_embeddings" in c_name and
             info.tensor.size(0) > CONFIG.architecture.vocab_size
@@ -250,9 +250,9 @@ def trim_word_embeddings_megatron(
 
 
 def _rescale_grad_for_pp_microbatch_hook(
-        grad_info: TensorInfo, 
-        t_type: TType,
-    ) -> TensorInfo:
+    grad_info: TensorInfo, 
+    t_type: TType,
+) -> TensorInfo:
     """
     Log hook. Rescale the gradient tensor. In Megatron, during PP, the 
     output_tensor is divided by the number of microbatches, so the gradients
@@ -276,9 +276,9 @@ def _rescale_grad_for_pp_microbatch_hook(
 
 
 def _rescale_grad_for_loss_cp_rescale_hook(
-        grad_info: TensorInfo,
-        t_type: TType,
-    ) -> TensorInfo:
+    grad_info: TensorInfo,
+    t_type: TType,
+) -> TensorInfo:
     """
     Log hook. Rescale the gradient tensor. In Megatron, if CP is enabled, the
     loss tensor is multipled by the number of CP ranks, so the gradients are
@@ -304,9 +304,9 @@ _need_finalize_suffix = [
     "embedding.position_embeddings.weight",
 ]  # TODO: add judge for the parallelism used. and decide whether to add "extra"
 def _finalize_model_grads_megatron(
-        grad_info: TensorInfo, 
-        t_type: TType,
-    ) -> TensorInfo:
+    grad_info: TensorInfo, 
+    t_type: TType,
+) -> TensorInfo:
     """
     Some gradients are synced before grad update in `finalize_model_grads`.
     For example, the layernorm gradients and embedding+lm_head grad.

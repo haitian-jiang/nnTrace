@@ -16,10 +16,10 @@ LOGS = defaultdict(dict)
 
 
 def log_tensor(
-        canonical_name: str,
-        t_type: TType,
-        tensor_info: TensorInfo,
-    ) -> None:
+    canonical_name: str,
+    t_type: TType,
+    tensor_info: TensorInfo,
+) -> None:
     """
     Log the tensor to the destination.
     """
@@ -42,9 +42,9 @@ def log_tensor(
 
 
 def save_logs(
-        t_type: TType, 
-        run_dir: Path,
-    ) -> None:
+    t_type: TType, 
+    run_dir: Path,
+) -> None:
     OmegaConf.save(CONFIG, run_dir / "config.yaml")
 
     world_size = get_parallel_states().size.world_size

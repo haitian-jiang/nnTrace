@@ -10,10 +10,10 @@ from tqdm import tqdm
 
 
 def _merge_logs(
-        c_name: str,
-        log_shards: list[TensorInfo],
-        t_type: TType,
-    ) -> TensorInfo | None:
+    c_name: str,
+    log_shards: list[TensorInfo],
+    t_type: TType,
+) -> TensorInfo | None:
     """
     Update the merged logs with the raw logs.
     """
@@ -108,10 +108,10 @@ def _merge_distr_logs(log_path: str, t_type: TType) -> None:
 
 
 def merge_distr_logs(
-        log_path: str, 
-        t_type: Optional[TType] = None,
-        parallel: bool = False,
-    ) -> None:
+    log_path: str, 
+    t_type: Optional[TType] = None,
+    parallel: bool = False,
+) -> None:
     """
     Merge the logs from different ranks into a single log file.
     Works for one specific tensor type.

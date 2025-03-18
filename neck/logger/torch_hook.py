@@ -42,13 +42,13 @@ Sparsify hooks should happen after log hooks and rewrite hooks.
 
 class ModuleHookBase:
     def __init__(
-            self, 
-            canon_mod_name: str, 
-            t_annotation: TensorAnnotation,
-            m_annotation: ModuleAnnotation,
-            module: torch.nn.Module,
-            vp_rank: int,
-        ):
+        self, 
+        canon_mod_name: str, 
+        t_annotation: TensorAnnotation,
+        m_annotation: ModuleAnnotation,
+        module: torch.nn.Module,
+        vp_rank: int,
+    ):
         self.canon_mod_name = canon_mod_name  # canonical module name
         self.t_annotation = t_annotation
         self.m_annotation = m_annotation  # to access output_idx
@@ -58,11 +58,11 @@ class ModuleHookBase:
         self.vp_rank = vp_rank
 
     def get_canon_act_grad_name(
-            self, 
-            i_o_: Literal["input", "output"] = "output", 
-            idx: int = 0,
-            is_grad: bool = False,
-        ) -> str:
+        self, 
+        i_o_: Literal["input", "output"] = "output", 
+        idx: int = 0,
+        is_grad: bool = False,
+    ) -> str:
         # fwd pre hook: input, fwd post hook: output
         assert i_o_ in ("input", "output"), "Invalid input/output type"
         if is_grad:
@@ -96,11 +96,11 @@ class ModuleHookBase:
                f"{module_name}|{t_type}.{i_o_}.{idx}"
 
     def get_tensor_info(
-            self, 
-            activ: torch.Tensor,
-            canonical_name: str,
-            is_grad: bool = False,
-        ) -> TensorInfo:
+        self, 
+        activ: torch.Tensor,
+        canonical_name: str,
+        is_grad: bool = False,
+    ) -> TensorInfo:
         shape_slice = canonical.infer_slice(activ.shape, self.t_annotation)
         # NOTE: no double checking of shape and slice here, 
         # could add if exists in annotation.
@@ -121,10 +121,10 @@ class FwdPreLogHook(ModuleHookBase):
     """
 
     def __call__(
-            self, 
-            module: torch.nn.Module, 
-            args: tuple[torch.Tensor],
-        ) -> None:
+        self, 
+        module: torch.nn.Module, 
+        args: tuple[torch.Tensor],
+    ) -> None:
         """
         Log the input (actually output of last module) activation.
         The input (`args`) should be a tuple of one single tensor.
@@ -169,10 +169,10 @@ class FwdPreRewriteHook(ModuleHookBase):
         tensor.data = new_activation.data.to(tensor.dtype).to(tensor.device)
 
     def __call__(
-            self, 
-            module: torch.nn.Module, 
-            args: tuple,
-        ) -> None:
+        self, 
+        module: torch.nn.Module, 
+        args: tuple,
+    ) -> None:
         assert module is self.module, \
             f"module mismatch in {self.canon_mod_name} pre rewrite"
         if len(args) == 1:
@@ -196,11 +196,11 @@ class FwdPostLogHook(ModuleHookBase):
         log_tensor(canon_act_name, TType.activ, tensor_info)
 
     def __call__(
-            self, 
-            module: torch.nn.Module, 
-            args: tuple, 
-            output: torch.Tensor | tuple,  # python >= 3.10
-        ) -> None:
+        self, 
+        module: torch.nn.Module, 
+        args: tuple, 
+        output: torch.Tensor | tuple,  # python >= 3.10
+    ) -> None:
 
         # checkings
         if self.module is not None:
@@ -346,11 +346,11 @@ class BwdPostLogHook(ModuleHookBase):
 
 
 def register_hook(
-        module: torch.nn.Module,
-        canon_mod_name: str,
-        annotation: "ModuleAnnotation",
-        vp_rank: int,
-    ) -> None:
+    module: torch.nn.Module,
+    canon_mod_name: str,
+    annotation: "ModuleAnnotation",
+    vp_rank: int,
+) -> None:
     assert isinstance(module, torch.nn.Module), \
         "module must be an instance of torch.nn.Module"
     assert hasattr(module, "forward"), \

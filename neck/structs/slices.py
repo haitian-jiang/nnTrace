@@ -88,10 +88,10 @@ class ShardSlice:
                     store the full shape again in TensorInfo.
     """
     def __init__(
-            self, 
-            full_shape: Sequence[int],
-            shard_slice: Optional[Sequence[slice]]=None, 
-        ):
+        self, 
+        full_shape: Sequence[int],
+        shard_slice: Optional[Sequence[slice]]=None, 
+    ):
         """
         Args:
             shard_slice: The slice of the sharded tensor.  If None, return the
@@ -243,11 +243,11 @@ class ShardSlice:
 
 class ShardNDSlices:
     def __init__(
-            self, 
-            full_shape: Sequence[int],
-            local_shape: Optional[Sequence[int]] = None,
-            slice_map: Optional[dict[NDSlice, NDSlice]] = None,
-        ):
+        self, 
+        full_shape: Sequence[int],
+        local_shape: Optional[Sequence[int]] = None,
+        slice_map: Optional[dict[NDSlice, NDSlice]] = None,
+    ):
 
         # deal with full shape initialization
         if slice_map is None:  # a full slice
@@ -262,10 +262,10 @@ class ShardNDSlices:
 
     @staticmethod
     def _check_init_input(
-            full_shape: Sequence[int], 
-            local_shape: Sequence[int], 
-            slice_map: dict[NDSlice, NDSlice],
-        ):
+        full_shape: Sequence[int], 
+        local_shape: Sequence[int], 
+        slice_map: dict[NDSlice, NDSlice],
+    ):
         assert len(full_shape) == len(local_shape), "Expect same dim."
         for local_, global_ in slice_map.items():
             # same dim

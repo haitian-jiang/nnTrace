@@ -122,9 +122,9 @@ module_annotations = _parse_module_annotation()
 
 
 def get_annotation(
-        local_name: str,
-        type: Literal["param", "module"],
-    ) -> Optional[TensorAnnotation | ModuleAnnotation]:
+    local_name: str,
+    type: Literal["param", "module"],
+) -> Optional[TensorAnnotation | ModuleAnnotation]:
     """Get the annotation given a module or parameter's local name.
 
     Args:

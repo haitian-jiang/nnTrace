@@ -48,10 +48,10 @@ def tensor_rel_err(specimen, oracle, norm='fro'):
 
 
 def get_err_raw(
-        specimen_path, 
-        oracle_path, 
-        t_type: TType,
-    ) -> dict[str, float]:
+    specimen_path, 
+    oracle_path, 
+    t_type: TType,
+) -> dict[str, float]:
     """
     Retruns: dict[c_name, rel_err]
     """
@@ -80,11 +80,11 @@ def get_err_raw(
 
 
 def _get_err_raw_and_store_result(
-        specimen_path,
-        oracle_path,
-        output_dir,
-        t_type: TType,
-    ) -> bool:
+    specimen_path,
+    oracle_path,
+    output_dir,
+    t_type: TType,
+) -> bool:
     err_dict = get_err_raw(specimen_path, oracle_path, t_type)
     torch.save(err_dict, output_dir / f"{t_type}.pt")
     with open(output_dir / f"{t_type}.log", "w") as f:
@@ -105,11 +105,11 @@ def get_err_array(err_dict, batch_num, layer_num) -> dict[str, np.ndarray]:
 
 
 def conduct_differential_test(
-        oracle_run_dir: str, 
-        specimen_run_dir: str, 
-        output_dir: str,
-        t_type: Optional[TType] = None,
-    ):
+    oracle_run_dir: str, 
+    specimen_run_dir: str, 
+    output_dir: str,
+    t_type: Optional[TType] = None,
+):
     oracle_run_dir = Path(oracle_run_dir)
     specimen_run_dir = Path(specimen_run_dir)
     output_dir = Path(output_dir)

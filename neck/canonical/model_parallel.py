@@ -10,9 +10,9 @@ from .megatron import (
 
 
 def to_canonical_param_mod(
-        local_name: str, 
-        vp_rank: int,
-    ) -> str:
+    local_name: str, 
+    vp_rank: int,
+) -> str:
     """
     Convert a weight name or a module name to a canonical name.
     Example of a weight name: 
@@ -29,9 +29,9 @@ def to_canonical_param_mod(
 
 
 def infer_slice(
-        runtime_shape: torch.Size,
-        annotation: Optional[TensorAnnotation] = None,
-    ) -> ShardNDSlices:
+    runtime_shape: torch.Size,
+    annotation: Optional[TensorAnnotation] = None,
+) -> ShardNDSlices:
     """
     Infer the full shape and slice for a tensor given its runtime shape and 
     annotation information.  If the annotation is None, then the runtime shape
@@ -46,8 +46,8 @@ def infer_slice(
 
 
 def trim_word_embeddings(
-        info_dict: dict[str, TensorInfo]
-    ) -> dict[str, TensorInfo]:
+    info_dict: dict[str, TensorInfo]
+) -> dict[str, TensorInfo]:
     """
     Trim the word embeddings tensor to the vocabulary size.
     """
