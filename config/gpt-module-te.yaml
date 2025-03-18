@@ -12,6 +12,7 @@
 #   grad: null or 
 #     input: bool
 #     output: bool
+#   allow_sparsify: False
 # TODO: add checking during constructing...?
 
 
@@ -59,6 +60,7 @@ self_attention.linear_qkv:
   grad:
     input: True
     output: True
+  allow_sparsify: False
 
 self_attention.core_attention:
   # reshape & split of linear_qkv output, no need to rewrite input
@@ -74,6 +76,7 @@ self_attention.core_attention:
   grad:
     input: True
     output: True
+  allow_sparsify: False
 
 self_attention.linear_proj:
   output:  # could rewrite output
@@ -85,6 +88,7 @@ self_attention.linear_proj:
   output_idx: 0  # 1 is output_bias, directly copied from self.bias
   grad:
     output: True
+  allow_sparsify: True
 
 
 pre_mlp_layernorm:
@@ -115,6 +119,7 @@ mlp.linear_fc1:  # if record input, then input has sp dim 0
   rewrite_grad_output: True
   grad:
     output: True
+  allow_sparsify: False
 
 mlp.linear_fc2:
   input:
@@ -130,6 +135,7 @@ mlp.linear_fc2:
   grad:
     input: True
     output: True
+  allow_sparsify: True
 
 layers.\d:
   # no need to rewrite, rewritten by mlp.linear_fc2, 

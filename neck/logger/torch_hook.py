@@ -37,7 +37,10 @@ __doc__ = """
 Log hooks (either forward or backward) should only log unmodified tensors.
 Rewrite hooks should always happen after log hooks.
 Whenever there is a rewrite hook, there should be a log hook before it.
-Sparsify hooks should happen after log hooks and rewrite hooks.
+Order:
+- Log
+- Rewrite
+- Sparsify
 """
 
 
@@ -114,27 +117,23 @@ class ModuleHookBase(ABC):
         )  # TODO: add info of whether from module with input rewritten.
 
 
-class FwdPreLogHook(ModuleHookBase):
-    """
-    Must be prepend to a module at last, because it need to log out the output
-    of the last module, which must NOT been already rewritten.
-    NOTE: only support tensors in `args`, no `kwargs`.  Could add if needed.
-    """
+class FwdPreHook(ModuleHookBase, ABC):
+    
+    @abstractmethod
+    def action(self, activation: torch.Tensor, i: int) -> None:
+        """
+        Virtual function for the action to be taken on the activation.
+        Acts on each activation of interest.
+        """
+        raise NotImplementedError
 
     def __call__(
-        self, 
-        module: torch.nn.Module, 
+        self,
+        module: torch.nn.Module,
         args: tuple[torch.Tensor],
     ) -> None:
-        """
-        Log the input (actually output of last module) activation.
-        The input (`args`) should be a tuple of one single tensor.
-        Dynamically construct the canonical name from module name,
-        input / output, and global batch index.
-        Get shape and slice from tensor annotation stored during construction.
-        """
         assert module is self.module, \
-            f"module mismatch in {self.canon_mod_name} pre log"
+            f"module mismatch in {self.canon_mod_name} pre hook"
         if len(args) == 1:
             self.m_annotation.input_idx = [0]
         if self.m_annotation.input_idx is not None:
@@ -142,11 +141,9 @@ class FwdPreLogHook(ModuleHookBase):
             for i in idx:
                 activation = args[i]
                 assert isinstance(activation, torch.Tensor), \
-                    "fwd_pre_log expects a tensor"
-                canon_act_name = self.get_canon_act_grad_name("input", i)
-                tensor_info = self.get_tensor_info(activation, canon_act_name)
-                log_tensor(canon_act_name, TType.activ, tensor_info)
-        else:
+                    "fwd_pre_hook expects a tensor"
+                self.action(activation, i)
+        else:   # TODO: can force use must provide input_idx
             for i, activation in enumerate(args):
                 if not isinstance(activation, torch.Tensor):
                     continue
@@ -190,25 +187,19 @@ class FwdPreRewriteHook(FwdPreHook):
         new_activation = 0.02 * (new_activation-0.5)  # rescale to [-0.01, 0.01]
         tensor.data = new_activation.data
 
-    def __call__(
-        self, 
-        module: torch.nn.Module, 
-        args: tuple,
-    ) -> None:
-        assert module is self.module, \
-            f"module mismatch in {self.canon_mod_name} pre rewrite"
-        if len(args) == 1:
-            self.m_annotation.input_idx = 0
-        if self.m_annotation.input_idx is not None:
-            idx: list[int] = self.m_annotation.input_idx
-            for i in idx:
-                self._rewrite_input(args[i], i)
-        else:  # TODO: can force use must provide input_idx
-            for i, arg in enumerate(args):
-                if not isinstance(arg, torch.Tensor):
-                    continue
-                # TODO: inputs use the same t_annotation, but they may not be sharded in the same way.
-                self._rewrite_input(arg, i)
+
+class FwdPreSparsifyHook(FwdPreHook):
+    def __init__(self, *args, p: float = 1.0):
+        super().__init__(*args)
+        self.p = p
+
+    def action(self, tensor: torch.Tensor, i: int) -> None:
+        assert isinstance(tensor, torch.Tensor), "fwd_pre_sparsify expects a tensor"
+        canon_act_name = self.get_canon_act_grad_name("input", i)
+        shard_slice = canonical.infer_slice(tensor.shape, self.t_annotation)
+        mask = neck.random.rand_mask(canon_act_name, shard_slice, self.p, tensor.device)
+        tensor.data = tensor.data * mask
+
 class FwdPostHook(ModuleHookBase, ABC):
 
     @abstractmethod
@@ -260,29 +251,19 @@ class FwdPostRewriteHook(FwdPostHook):
         new_activation = 0.02 * (new_activation-0.5)  # rescale to [-0.01, 0.01]
         tensor.data = new_activation.data
 
-    def __call__(
-        self,
-        module: torch.nn.Module,
-        args: tuple,
-        output: torch.Tensor | tuple,
-    ):
-        # checkings
-        if self.module is not None:
-            assert module == self.module, f"module mismatch in {self.canon_mod_name} post log"
-        assert isinstance(output, torch.Tensor) or isinstance(output, tuple), \
-            "fwd_post_log expects a tensor or a tuple of tensors" 
-        
-        if isinstance(output, torch.Tensor):
-            self._rewrite_output(output, 0)
-        elif self.m_annotation.output_idx is not None:
-            idx = self.m_annotation.output_idx
-            activation = output[idx]
-            assert isinstance(activation, torch.Tensor), "fwd_post_log expects a tensor"
-            self._rewrite_output(activation, idx)
-        else:
-            for idx, activation in enumerate(output):
-                if isinstance(activation, torch.Tensor):
-                    self._rewrite_output(activation, idx)
+
+class FwdPostSparsifyHook(FwdPostHook):
+    def __init__(self, *args, p: float = 1.0):
+        super().__init__(*args)
+        self.p = p
+
+    def action(self, tensor: torch.Tensor, idx: int = 0) -> None:
+        assert isinstance(tensor, torch.Tensor), "fwd_post_sparsify expects a tensor"
+        canon_act_name = self.get_canon_act_grad_name("output", idx)
+        shard_slice = canonical.infer_slice(tensor.shape, self.t_annotation)
+        mask = neck.random.rand_mask(canon_act_name, shard_slice, self.p, tensor.device)
+        tensor.data = tensor.data * mask
+
 
 class BwdPreHook(ModuleHookBase, ABC):
 
@@ -341,24 +322,18 @@ class BwdPreRewriteHook(BwdPreHook):
         grad.data = new_grad.data
 
 
-    def __call__(
-        self,
-        module: torch.nn.Module,
-        grad_output: tuple[torch.Tensor],
-    ) -> None:
-        if self.m_annotation.output_idx is not None:
-            i = self.m_annotation.output_idx
-            grad = grad_output[i]
-            assert isinstance(grad, torch.Tensor), \
-                f"Got {type(grad)} grad_output in {self.canon_mod_name}"
-            self._rewrite_grad_output(grad, i)
-            return
-        for i, grad in enumerate(grad_output):
-            if grad is None:
-                continue
-            assert isinstance(grad, torch.Tensor), \
-                f"bwd pre hook get non tensor: {type(grad)}"
-            self._rewrite_grad_output(grad, i)
+class BwdPreSparsifyHook(BwdPreHook):
+    def __init__(self, *args, p: float = 1.0):
+        super().__init__(*args)
+        self.p = p
+
+    def action(self, grad: torch.Tensor, idx: int) -> None:
+        assert isinstance(grad, torch.Tensor), \
+            f"bwd pre hook get non tensor: {type(grad)}"
+        canon_grad_name = self.get_canon_act_grad_name("output", idx, True)
+        shard_slice = canonical.infer_slice(grad.shape, self.t_annotation)
+        mask = neck.random.rand_mask(canon_grad_name, shard_slice, self.p, grad.device)
+        grad.data = grad.data * mask
 
 
 class BwdPostLogHook(ModuleHookBase):
@@ -386,6 +361,7 @@ def register_hook(
     canon_mod_name: str,
     annotation: "ModuleAnnotation",
     vp_rank: int,
+    sparsity: Optional[float] = None,
 ) -> None:
     assert isinstance(module, torch.nn.Module), \
         "module must be an instance of torch.nn.Module"
@@ -396,8 +372,22 @@ def register_hook(
     forward pre hooks: 
       log output from last module 
       rewrite input for this module
+      sparsify the input for this module
       other user-defined pre hooks
     """
+    if sparsity is not None and annotation.allow_sparsify:
+        module.register_forward_pre_hook(
+            FwdPreSparsifyHook(
+                canon_mod_name,
+                annotation.input,
+                annotation,
+                module,
+                vp_rank,
+                p=sparsity,
+            ),
+            prepend=True,
+        )
+
     if annotation.rewrite_input:
         assert annotation.input is not None, \
             f"Cannot rewrite input without tensor annotation: {canon_mod_name}"
@@ -429,6 +419,7 @@ def register_hook(
       other user-defined post hooks
       log output of this module
       rewrite output for next module
+      sparsify the output for next module
     """
     if annotation.output is not None:
         module.register_forward_hook(
@@ -440,7 +431,7 @@ def register_hook(
                 vp_rank,
             )
         )
-    
+
     if annotation.rewrite_output:
         module.register_forward_hook(
             FwdPostRewriteHook(
@@ -449,6 +440,18 @@ def register_hook(
                 annotation,
                 module,
                 vp_rank,
+            )
+        )
+
+    if sparsity is not None and annotation.allow_sparsify:
+        module.register_forward_hook(
+            FwdPostSparsifyHook(
+                canon_mod_name,
+                annotation.output,
+                annotation,
+                module,
+                vp_rank,
+                p=sparsity,
             )
         )
 
@@ -467,6 +470,26 @@ def register_hook(
                 module,
                 vp_rank,
             )
+        )
+
+    """
+    backward pre hooks for grad_output:
+    log, 
+    rewrite, 
+    sparsify grad_output,
+    other user-defined pre hooks
+    """
+    if sparsity is not None and annotation.allow_sparsify:
+        module.register_full_backward_pre_hook(
+            BwdPreSparsifyHook(
+                canon_mod_name,
+                annotation.output,
+                annotation,
+                module,
+                vp_rank,
+                p=sparsity,
+            ),
+            prepend=True
         )
 
     if annotation.rewrite_grad_output:

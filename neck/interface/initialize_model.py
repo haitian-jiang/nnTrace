@@ -153,13 +153,15 @@ def register_model_hooks(
     vp_rank = _check_vp_rank(model, vp_rank)
     assert isinstance(vp_rank, int), "vp_rank must be an integer"
 
+    sparsity = CONFIG.neck.get("sparsity", None)
+
     for m_name, module in model.named_modules():
         m_annotation: ModuleAnnotation = get_annotation(m_name, "module")
         if m_annotation is None or m_annotation.turnoff:
             continue
         m_annotation = filter_module_annotation(m_annotation)
         canon_mod_name = to_canonical_param_mod(m_name, vp_rank)
-        register_hook(module, canon_mod_name, m_annotation, vp_rank)
+        register_hook(module, canon_mod_name, m_annotation, vp_rank, sparsity)
 
     regist_batch_cnt_hook(model, vp_rank, True)  # prepend
     regist_batch_cnt_hook(model, vp_rank, False)  # prepend

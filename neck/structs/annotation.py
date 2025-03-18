@@ -71,6 +71,7 @@ class ModuleAnnotation:
     rewrite_grad_output: bool = False
     grad: Optional[OmegaConf] = None
     fusion: Optional[list[str]] = None
+    allow_sparsify: bool = False
 
     @classmethod
     def from_dict(cls, raw_annotation: OmegaConf) -> "ModuleAnnotation":

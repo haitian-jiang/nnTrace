@@ -29,4 +29,5 @@ parallel:
 
 neck:
   rewrite: False
+  sparsity: null  # null or a float between 0 and 1
   param_sparsity: 0.5
