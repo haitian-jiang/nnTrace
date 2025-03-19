@@ -2,10 +2,20 @@ cmake_minimum_required(VERSION 3.12)
 set(CMAKE_CXX_STANDARD 17)
 project(cpp_ext)
 
-# Set the Python executable to the one in the conda environment
-set(Python3_EXECUTABLE $ENV{CONDA_PREFIX}/bin/python)  # need if/else for non-conda env
 # Find Python interpreter and development files in the current environment
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
+# If Python3_EXECUTABLE is not set, manually check Conda and venv
+if(NOT Python3_EXECUTABLE)
+    if(DEFINED ENV{CONDA_PREFIX})
+        set(Python3_EXECUTABLE $ENV{CONDA_PREFIX}/bin/python)
+    elseif(DEFINED ENV{VIRTUAL_ENV})
+        set(Python3_EXECUTABLE $ENV{VIRTUAL_ENV}/bin/python)
+    else()
+        message(FATAL_ERROR "Python3 executable not found! Please activate a Python environment.")
+    endif()
+endif()
+message(STATUS "Using Python interpreter: ${Python3_EXECUTABLE}")
+
 
 # Use pybind11's cmake module to locate the installation path for pybind11
 execute_process(
