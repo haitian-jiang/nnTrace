@@ -38,11 +38,11 @@ def tensor_rel_err(specimen, oracle, norm='fro'):
     elif norm == 'inf':
         abs_err = (specimen - oracle).abs().max()
         oracle_norm = oracle.abs().max()
-    if torch.allclose(oracle, torch.zeros_like(oracle)):
-        if torch.allclose(specimen, torch.zeros_like(specimen)):
+    if oracle_norm.item() < 1e-14 * oracle.numel():
+        if abs_err.item() < 2e-14 * abs_err.numel():
             return 0.0
         else:
-            return 615.0
+            return 615.0  # a magic lucky number standing for inf
     else:
         return (abs_err / oracle_norm).item()
 

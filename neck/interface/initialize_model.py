@@ -68,8 +68,6 @@ def reinit_model(
     ), "model has not been initialized"
 
     for name, param in model.named_parameters():
-        if "layer_norm" in name or "layernorm" in name:
-            continue
         # canonical parameter of this framework, need to convert to fw agnostic
         fw_canon_param_name = to_canonical_param_mod(name, vp_rank)
         annotation: TensorAnnotation = get_annotation(name, "param")
@@ -87,8 +85,11 @@ def reinit_model(
             fw_canon_param_name = None  # work as arg for ParamLogHook
         shard_slice = infer_slice(param.shape, annotation)
 
+        # with iter id: "iter.0|module.module.decoder.layers.0.xxx"        
+        canon_param_logging_name = get_param_logging_cname(canon_param_name)
+
         # reinitialize the parameter
-        new_param = neck.random.rand(canon_param_name, shard_slice)
+        new_param = neck.random.rand(canon_param_logging_name, shard_slice)
         # respect the original range
         if initialization == "kaiming_uniform":
             new_param = (2 * new_param - 1) / math.sqrt(shard_slice.full_shape[-1])
@@ -99,7 +100,7 @@ def reinit_model(
 
         param.register_hook(
             ParamLogHook(
-                canon_param_name, 
+                canon_param_name,  # tensor bwd hook compose its own name
                 vp_rank,
                 shard_slice,
                 fw_canon_param_name,  # None if not changed
@@ -107,7 +108,6 @@ def reinit_model(
         )
 
         if log_params:
-            canon_param_logging_name = get_param_logging_cname(canon_param_name)
             tensor_info = TensorInfo(
                 tensor=new_param,
                 canonical_name=canon_param_logging_name,
