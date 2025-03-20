@@ -114,7 +114,7 @@ class ModuleHookBase(ABC):
         )  # TODO: add info of whether from module with input rewritten.
 
 
-class FwdPreLogHook(ModuleHookBase):
+class FwdPreHook(ModuleHookBase):
     """
     Must be prepend to a module at last, because it need to log out the output
     of the last module, which must NOT been already rewritten.

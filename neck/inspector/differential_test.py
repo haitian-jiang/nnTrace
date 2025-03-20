@@ -84,12 +84,14 @@ def _get_err_raw_and_store_result(
     oracle_path,
     output_dir,
     t_type: TType,
+    dtype = "bf16"
 ) -> bool:
     err_dict = get_err_raw(specimen_path, oracle_path, t_type)
     torch.save(err_dict, output_dir / f"{t_type}.pt")
+    eps_mch = {"bf16": 2**-7, "fp16": 2**-10, "fp32": 2**-23}[dtype]
     with open(output_dir / f"{t_type}.log", "w") as f:
         for name, err in err_dict.items():  # TODO: hard-coded 2**-7
-            print(f"{name:<100} {err:.4e} {err/2**-7:10.2f}", file=f)
+            print(f"{name:<100} {err:.4e} {err/eps_mch:10.2f}", file=f)
     clog.info(f"Finished storing error results for {t_type}!")
     return True  # success
 
@@ -109,6 +111,7 @@ def conduct_differential_test(
     specimen_run_dir: str, 
     output_dir: str,
     t_type: Optional[TType] = None,
+    dtype: str = "bf16",
 ):
     oracle_run_dir = Path(oracle_run_dir)
     specimen_run_dir = Path(specimen_run_dir)
@@ -138,6 +141,7 @@ def conduct_differential_test(
                 oracle_run_dir / f"{t_type}.pt",
                 output_dir,
                 t_type,
+                dtype,
             )
             for t_type in running_ttypes
         }
