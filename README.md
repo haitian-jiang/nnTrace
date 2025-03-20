@@ -71,6 +71,17 @@ pip install loguru
 pip install xxhash
 ```
 
+The C++ extension has dependency on TBB on Linux.  Below is the way to
+install TBB locally in python env (if TBB is installed globally and
+can be correctly linked, this part can be skipped).
+
+```bash
+pip install tbb
+# check if tbb is correctly installed
+find $(python -c "import sys; print(sys.prefix)") -name "libtbb.so.12"
+# update linker path
+export LD_LIBRARY_PATH=/path/to/env/lib:$LD_LIBRARY_PATH
+```
 
 ## Usage (Run time)
 
@@ -203,7 +214,7 @@ CUDA_DEVICE_MAX_CONNECTIONS=1 \
 OMP_NUM_THREADS=1 \
 NCCL_ALGO=tree \
 PYTHONWARNINGS=ignore \
-torchrun
+torchrun \
 --nproc_per_node 8 \
 --nnodes 1 \
 --node_rank 0 \
@@ -231,7 +242,8 @@ pretrain_gpt.py \
 --attention-softmax-in-fp32 \
 --attention-dropout 0.0 \
 --hidden-dropout 0.0 \
---bf16 --data-path /workspace/dataset/wikitext/wikitext_text_document \
+--bf16 \
+--data-path /workspace/dataset/wikitext/wikitext_text_document \
 --vocab-file /workspace/dataset/gpt2-vocab.json \
 --merge-file /workspace/dataset/gpt2-merges.txt \
 --split 949,50,1 \
