@@ -69,6 +69,7 @@ Dependency:
 ```bash
 pip install loguru
 pip install xxhash
+pip install omegaconf
 ```
 
 The C++ extension has dependency on TBB on Linux.  Below is the way to
@@ -76,6 +77,10 @@ install TBB locally in python env (if TBB is installed globally and
 can be correctly linked, this part can be skipped).
 
 ```bash
+# apt
+sudo apt install libtbb-dev
+
+# pip
 pip install tbb
 # check if tbb is correctly installed
 find $(python -c "import sys; print(sys.prefix)") -name "libtbb.so.12"
