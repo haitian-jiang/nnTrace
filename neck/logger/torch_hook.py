@@ -29,8 +29,8 @@ def update_iter_batch_cnt() -> None:
         bwd_pass_cnt[vp_rank] = -1
 
 
-def get_param_logging_cname(canon_param_name: str) -> str:
-    return f"iter.{iter_cnt}|{canon_param_name}"
+def get_param_full_cname(canon_param_name: str, t_type: TType) -> str:
+    return f"iter.{iter_cnt}|{canon_param_name}|{t_type}"
 
 
 __doc__ = """
@@ -590,7 +590,7 @@ __all__ = [
     "ParamLogHook",
     #--- APIs ---#
     "update_iter_batch_cnt",
-    "get_param_logging_cname",
+    "get_param_full_cname",
     "register_hook",
     "regist_batch_cnt_hook",
 ]

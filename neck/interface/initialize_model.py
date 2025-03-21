@@ -20,7 +20,7 @@ from neck.logger import (
     log_tensor, 
     register_hook, 
     regist_batch_cnt_hook, 
-    get_param_logging_cname,
+    get_param_full_cname,
     ParamLogHook,
 )
 
@@ -85,11 +85,11 @@ def reinit_model(
             fw_canon_param_name = None  # work as arg for ParamLogHook
         shard_slice = infer_slice(param.shape, annotation)
 
-        # with iter id: "iter.0|module.module.decoder.layers.0.xxx"        
-        canon_param_logging_name = get_param_logging_cname(canon_param_name)
+        # "iter.0|module.module.decoder.layers.0.xxx|param"        
+        full_cname = get_param_full_cname(canon_param_name, TType.param)
 
         # reinitialize the parameter
-        new_param = neck.random.rand(canon_param_logging_name, shard_slice)
+        new_param = neck.random.rand(full_cname, shard_slice)
         # respect the original range
         if initialization == "kaiming_uniform":
             new_param = (2 * new_param - 1) / math.sqrt(shard_slice.full_shape[-1])
@@ -110,10 +110,10 @@ def reinit_model(
         if log_params:
             tensor_info = TensorInfo(
                 tensor=new_param,
-                canonical_name=canon_param_logging_name,
+                canonical_name=full_cname,
                 shard_slice=shard_slice,
             )
-            log_tensor(canon_param_logging_name, TType.param, tensor_info)
+            log_tensor(full_cname, TType.param, tensor_info)
 
 
 def filter_module_annotation(m_annotation: ModuleAnnotation) -> ModuleAnnotation:

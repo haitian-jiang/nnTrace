@@ -16,8 +16,15 @@ from neck.structs import (
 def get_megatron_lm_parallel_rank() -> OmegaConf:
 
     from megatron.core import parallel_state
-    assert parallel_state.is_initialized(), \
-        "Megatron-LM parallel state is not initialized."
+
+    if hasattr(parallel_state, "is_initialized"):
+        is_initialized = parallel_state.is_initialized
+    elif hasattr(parallel_state, "model_parallel_is_initialized"):
+        is_initialized = parallel_state.model_parallel_is_initialized
+    else:
+        raise AttributeError("Cannot find is_initialized in parallel_state.")
+
+    assert is_initialized(), "Megatron-LM parallel state is not initialized."
     
     rank = CONFIG.parallel.rank
     size = CONFIG.parallel.size

@@ -161,7 +161,7 @@ File to modify: `Megatron-LM/megatron/training/training.py`
                    model, optimizer, opt_param_scheduler, config):
         ...
     --> for vp_rank, model_chunk in enumerate(model):
-    -->     neck.prior_optim_logging(model_chunk, vp_rank)
+    -->     neck.prior_optim(model_chunk, vp_rank)
 
         # Update parameters.
 
@@ -170,7 +170,7 @@ File to modify: `Megatron-LM/megatron/training/training.py`
         timers('optimizer').stop()
 
     --> for vp_rank, model_chunk in enumerate(model):
-    -->     neck.post_optim_logging_reset(model_chunk, vp_rank)
+    -->     neck.post_optim(model_chunk, vp_rank)
         ...
     ```
 
@@ -202,62 +202,42 @@ and whether to rewrite them to have a fine-grained localization.
    Otherwise the log size will be too large and everything will be slow.
 
 
-## Examples
+## Usage (Test time)
+After running the training script for 1 iteration, the logs are collected and
+stored on disk, say the single device training logs are stored in the folder
+`oracle`, and the multi-device training logs are stored in the foler `specimen`.  
 
-### Train GPT
-
-Here is one example to train GPT with 3D parallelism (TP=2, PP=2, DP=2):
-
-```bash
-NECK_CONFIG_PATH=/home/ubuntu/repos/NECK/config/gpt.yaml \
-CUDA_DEVICE_MAX_CONNECTIONS=1 \
-OMP_NUM_THREADS=1 \
-NCCL_ALGO=tree \
-PYTHONWARNINGS=ignore \
-torchrun \
---nproc_per_node 8 \
---nnodes 1 \
---node_rank 0 \
---master_addr localhost \
---master_port 6000 \
-pretrain_gpt.py \
---tensor-model-parallel-size 2 \
---pipeline-model-parallel-size 2 \
---num-layers 24 \
---hidden-size 1024 \
---num-attention-heads 16 \
---seq-length 1024 \
---max-position-embeddings 1024 \
---micro-batch-size 4 \
---global-batch-size 16 \
---lr 0.00015 \
---train-iters 1 \
---lr-decay-iters 320000 \
---lr-decay-style cosine \
---min-lr 1.0e-5 \
---weight-decay 1e-2 \
---lr-warmup-fraction 0.0 \
---clip-grad 1.0 \
---use-mcore-models \
---attention-softmax-in-fp32 \
---attention-dropout 0.0 \
---hidden-dropout 0.0 \
---bf16 \
---data-path /workspace/dataset/wikitext/wikitext_text_document \
---vocab-file /workspace/dataset/gpt2-vocab.json \
---merge-file /workspace/dataset/gpt2-merges.txt \
---split 949,50,1 \
---log-interval 100 \
---save-interval 10000 \
---eval-interval 1000 \
---eval-iters 0 \
---save /workspace/checkpoints \
---load /workspace/checkpoints \
---no-gradient-accumulation-fusion \
---transformer-impl transformer_engine
+The logs collected from different devices are scattered in different files, so
+we need to merge them first.
+```python
+import neck
+neck.merge_distr_logs("/path/to/specimen")
 ```
+Run this command in either a python script or a python interactive shell.
+It will output some messages to the console (I do not use "log" to eliminate 
+ambiguity). And these output will also be stored in `specimen/merge.log`.
+**The merger can find and locate some bugs.**
+For example, when the gradient for weight update has not been all-reduced.
+So if there is an *error* message during the merging process, it means NECK
+finds a bug.  And it will output relevant information for locating the bug.
 
-### Training LLaMA
+After that, we can conduct the differential testing with for the specimen with
+the oracle using the following interface:
+```python
+import neck
+neck.conduct_differential_test("oracle", "specimen", "diff_dir")
+```
+The differences of the two runs are stored in `diff_dir`, and I haven't write
+the tool for analyzing this output.  But user can now directly look at the
+`*.log` files to identify if there is bug or not.
+
+
+
+## Examples
+Check `examples/` to see the commands for training GPT and LLaMA models with
+NECK environment variable setups.
+
+**Training LLaMA**
 
 Megatron-LM use `pretrain_gpt.py` with different arguments to make the model a
 LLaMA model.
@@ -290,97 +270,3 @@ def model_provider(pre_process=True, post_process=True):
             )
     return model
 ```
-
-Here is the training command for a LLaMA 3.2 1B model with TP and CP:
-```bash
-NECK_CONFIG_PATH=/home/ubuntu/repos/NECK/config/gpt.yaml \
-CUDA_DEVICE_MAX_CONNECTIONS=1 \
-NCCL_ALGO=tree \
-NVTE_APPLY_QK_LAYER_SCALING=1 \
-OMP_NUM_THREADS=1 \
-PYTHONWARNINGS=ignore \
-torchrun \
---nproc_per_node 2 \
---nnodes 1 \
---node_rank 0 \
---master_addr localhost \
---master_port 6000 \
-pretrain_gpt.py \
---tensor-model-parallel-size 2 \
---context-parallel-size 2 \
---num-layers 16 \
---hidden-size 2048 \
---ffn-hidden-size 8192 \
---num-attention-heads 32 \
---group-query-attention \
---num-query-groups 8 \
---seq-length 4096 \
---max-position-embeddings 4096 \
---position-embedding-type rope \
---rotary-base 500000 \
---rotary-percent 1.0 \
---use-rope-scaling \
---rope-scaling-factor 32 \
---make-vocab-size-divisible-by 128 \
---normalization RMSNorm \
---attention-dropout 0.0 \
---hidden-dropout 0.0 \
---clip-grad 1.0 \
---init-method-std 0.02 \
---micro-batch-size 4 \
---global-batch-size 16 \
---lr 0.00015 \
---train-iters 1 \
---lr-decay-iters 320000 \
---lr-decay-style cosine \
---min-lr 1.0e-5 \
---weight-decay 1e-2 \
---lr-warmup-fraction 0.0 \
---use-mcore-models \
---bf16 \
---apply-query-key-layer-scaling \
---attention-softmax-in-fp32 \
---disable-bias-linear \
---no-bias-swiglu-fusion \
---no-gradient-accumulation-fusion \
---data-path /workspace/dataset/wikitext/wikitext_text_document \
---vocab-file /workspace/dataset/gpt2-vocab.json \
---merge-file /workspace/dataset/gpt2-merges.txt \
---split 949,50,1 \
---log-interval 100 \
---save-interval 10000 \
---eval-interval 1000 \
---eval-iters 0 \
---save /workspace/checkpoints \
---load /workspace/checkpoints \
---transformer-impl transformer_engine
-```
-
-## Usage (Test time)
-After running the training script for 1 iteration, the logs are collected and
-stored on disk, say the single device training logs are stored in the folder
-`oracle`, and the multi-device training logs are stored in the foler `specimen`.  
-
-The logs collected from different devices are scattered in different files, so
-we need to merge them first.
-```python
-import neck
-neck.merge_distr_logs("/path/to/specimen")
-```
-Run this command in either a python script or a python interactive shell.
-It will output some messages to the console (I do not use "log" to eliminate 
-ambiguity). And these output will also be stored in `specimen/merge.log`.
-**The merger can find and locate some bugs.**
-For example, when the gradient for weight update has not been all-reduced.
-So if there is an *error* message during the merging process, it means NECK
-finds a bug.  And it will output relevant information for locating the bug.
-
-After that, we can conduct the differential testing with for the specimen with
-the oracle using the following interface:
-```python
-import neck
-neck.conduct_differential_test("oracle", "specimen", "diff_dir")
-```
-The differences of the two runs are stored in `diff_dir`, and I haven't write
-the tool for analyzing this output.  But user can now directly look at the
-`*.log` files to identify if there is bug or not.

@@ -3,7 +3,7 @@ from .torch_hook import (
     register_hook, 
     regist_batch_cnt_hook, 
     update_iter_batch_cnt,
-    get_param_logging_cname,
+    get_param_full_cname,
     ParamLogHook,
 )
 
@@ -12,6 +12,6 @@ __all__ = [
     "register_hook",
     "regist_batch_cnt_hook",
     "update_iter_batch_cnt",
-    "get_param_logging_cname",
+    "get_param_full_cname",
     "ParamLogHook",
 ]

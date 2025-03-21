@@ -1,12 +1,12 @@
 from .initialize_model import reinit_model, register_model_hooks
-from .update_model import prior_optim_logging, post_optim_logging_reset
+from .update_model import prior_optim, post_optim
 from .framework_config import parse_framework_config
 
 
 __all__ = [
     "reinit_model",
     "register_model_hooks",
-    "prior_optim_logging",
-    "post_optim_logging_reset",
+    "prior_optim",
+    "post_optim",
     "parse_framework_config",
 ]

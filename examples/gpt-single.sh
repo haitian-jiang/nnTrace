@@ -30,8 +30,8 @@ TRAINING_ARGS="
     --clip-grad 1.0 \
     --micro-batch-size 4 \
     --global-batch-size 16 \
-    --lr 0.00015 \
-    --min-lr 1.0e-5 \
+    --lr 1.0 \
+    --min-lr 1.0 \
     --train-iters 1 \
     --lr-warmup-fraction 0.0 \
     --lr-decay-iters 320000 \
