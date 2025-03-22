@@ -62,10 +62,18 @@ def post_optim(
     update_iter_batch_cnt()
 
     for name, param in model.named_parameters():
-        canon_param_name = to_canonical_param_mod(name, vp_rank)
+        fw_canon_param_name = to_canonical_param_mod(name, vp_rank)
         annotation = get_annotation(name, "param")
         assert annotation is not None, \
             f"Annotation not found for {name}"
+        # same as `reinit_model`, get the framework agnostic canon_param_name
+        if annotation.canonical_suffix is not None:
+            canon_param_name = fw_canon_param_name.replace(
+                annotation.suffix, annotation.canonical_suffix
+            )
+        else:  
+            canon_param_name = fw_canon_param_name
+            fw_canon_param_name = None  # work as arg for ParamLogHook
         shard_slice = infer_slice(param.shape, annotation)
         param_data = param.data.detach().cpu()
         full_cname = get_param_full_cname(canon_param_name, TType.param)
@@ -73,7 +81,6 @@ def post_optim(
             param_data,
             full_cname,
             shard_slice,
-            is_grad=False,
         )
         log_tensor(full_cname, TType.param, tensor_info)
         # TODO: optionally rewrite the param.data with the consistent value
