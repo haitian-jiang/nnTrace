@@ -188,7 +188,7 @@ class FwdPreRewriteHook(FwdPreHook):
             dtype=tensor.dtype,
         )
         new_activation = 0.02 * (new_activation-0.5)  # rescale to [-0.01, 0.01]
-        tensor.data = new_activation.data
+        tensor.data.copy_(new_activation.data)
 
     def __call__(
         self, 
@@ -258,7 +258,7 @@ class FwdPostRewriteHook(FwdPostHook):
             dtype=tensor.dtype,
         )
         new_activation = 0.02 * (new_activation-0.5)  # rescale to [-0.01, 0.01]
-        tensor.data = new_activation.data
+        tensor.data.copy_(new_activation.data)
 
     def __call__(
         self,
@@ -338,7 +338,7 @@ class BwdPreRewriteHook(BwdPreHook):
             dtype=grad.dtype,
         )
         new_grad = 0.02 * (new_grad - 0.5)  # rescale to [-0.01, 0.01]
-        grad.data = new_grad.data
+        grad.data.copy_(new_grad.data)
 
 
     def __call__(

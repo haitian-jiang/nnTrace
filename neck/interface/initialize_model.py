@@ -94,8 +94,18 @@ def reinit_model(
         if initialization == "kaiming_uniform":
             new_param = (2 * new_param - 1) / math.sqrt(shard_slice.full_shape[-1])
         # TODO: other initialization
+
         new_param = new_param.to(param.dtype)
-        param.data = new_param.data.to(param.device)
+        if log_params:
+            tensor_info = TensorInfo(
+                tensor=new_param,
+                canonical_name=full_cname,
+                shard_slice=shard_slice,
+            )
+            log_tensor(full_cname, TType.param, tensor_info)
+
+        new_param = new_param.to(param.device)
+        param.data.copy_(new_param.data)
 
 
         param.register_hook(
@@ -107,13 +117,7 @@ def reinit_model(
             )
         )
 
-        if log_params:
-            tensor_info = TensorInfo(
-                tensor=new_param,
-                canonical_name=full_cname,
-                shard_slice=shard_slice,
-            )
-            log_tensor(full_cname, TType.param, tensor_info)
+
 
 
 def filter_module_annotation(m_annotation: ModuleAnnotation) -> ModuleAnnotation:
