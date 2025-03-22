@@ -1,7 +1,7 @@
 import torch
 from collections import defaultdict
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Iterable
 from loguru import logger as clog
 from neck.structs import TensorInfo, TType
 from neck.canonical import trim_word_embeddings
@@ -109,7 +109,7 @@ def _merge_distr_logs(log_path: str, t_type: TType) -> None:
 
 def merge_distr_logs(
     log_path: str, 
-    t_type: Optional[TType] = None,
+    t_type: Optional[Iterable[TType]] = None,
     parallel: bool = False,
 ) -> None:
     """
@@ -120,10 +120,10 @@ def merge_distr_logs(
     clog_file.touch()
     clog.add(clog_file)
 
-    if not isinstance(t_type, TType) and t_type is not None:
-        raise ValueError(f"Invalid type for `t_type`: {type(t_type)}")
     if t_type is not None:
-        running_ttypes = [t_type]
+        running_ttypes = list(t_type)
+        assert all(isinstance(t, TType) for t in running_ttypes), \
+            "t_type must be an iterable of TType"
     else:
         running_ttypes = list(TType)
 

@@ -1,11 +1,25 @@
 import torch
 import neck
 import sys
-neckruns = "/home/ubuntu/nfs/neckruns"
-folder = sys.argv[1]
-for t_type in neck.structs.TType:
-    pt = torch.load(f"{neckruns}/{folder}/{t_type}.pt", weights_only=False)
-    log_file = open(f"{neckruns}/{folder}/{t_type}.log", "w")
+from pathlib import Path
+from neck.structs import TType
+
+neckruns = Path("/home/ubuntu/nfs/neckruns/")
+
+run_name = sys.argv[1]
+log_folder = neckruns / run_name
+if not log_folder.exists():
+    print(f"folder {run_name} does not exist")
+    sys.exit(1)
+for t_type in [TType.param] + list(TType):
+    txt_file = log_folder / f"{t_type}.log"
+    if txt_file.exists():
+        continue
+    pt_file = log_folder / f"{t_type}.pt"
+    if not pt_file.exists():
+        continue
+    pt = torch.load(pt_file, weights_only=False)
+    txt = open(txt_file, "w")
     print(f"previewing {t_type} tensors")
     for c_name, tensor_info in pt.items():
-        print(tensor_info, end='', file=log_file)
+        print(tensor_info, end='', file=txt)

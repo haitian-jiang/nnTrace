@@ -1,4 +1,6 @@
 export PYTHONWARNINGS=ignore
+# export CUDA_VISIBLE_DEVICES=
+export CUDA_DEVICE_MAX_CONNECTIONS=1
 export NECK_CONFIG_PATH=/home/ubuntu/repos/NECK/config/gpt.yaml
 export NECK_RUN_NAME=
 
@@ -21,9 +23,9 @@ ARCH_ARGS="
 
 PRECISION_ARGS="
     --attention-softmax-in-fp32 \
-    --fp16 \
-    --loss-scale 4096.0 \
+    --bf16 \
 "
+    #--loss-scale 4096.0 \
 
 TRAINING_ARGS="
     --clip-grad 1.0 \

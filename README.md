@@ -111,6 +111,18 @@ Step 1. Modify Megatron-LM
    In file `Megatron-LM/megatron/training/checkpointing.py`, find the function
    `save_checkpoint`, and make it directly return.
 
+3. Optionally close dataset `num_samples` check.
+   
+   In earlier version of megatron (for example 
+   [`6140bf8`](https://github.com/NVIDIA/Megatron-LM/commits/6140bf8deb6f944f3bf1b71e5341b9489b42217a)), there is an assertion in 
+   `Megatron-LM/core/datasets/megatron_dataset.py`,  `__init__` function
+   of `MegatronDataset` class: `assert num_samples > 0`.
+   It will prevent training with `--eval-iters 0`.
+   Having this option set to 0 disables doing validation and test runs, which
+   rules out their inference activation in the forward pass, and it is a must
+   for multi-iter training tracing.  Otherwise the iteration counter will be
+   wrong.  So comment this assertion out if it exists.
+
 
 Step 2. Add NECK code to Megatron-LM training code.
 File to modify: `Megatron-LM/megatron/training/training.py`

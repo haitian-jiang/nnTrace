@@ -1,5 +1,5 @@
 export PYTHONWARNINGS=ignore
-export CUDA_VISIBLE_DEVICES=0,1
+# export CUDA_VISIBLE_DEVICES=
 export CUDA_DEVICE_MAX_CONNECTIONS=1
 export OMP_NUM_THREADS=1
 export NCCL_ALGO=tree
@@ -20,6 +20,7 @@ PARALLEL_ARGS="
     --pipeline-model-parallel-size 1 \
     --context-parallel-size 1 \
 "
+    # --use-distributed-optimizer \
 
 ARCH_ARGS="
     --num-layers 24 \
@@ -34,9 +35,9 @@ ARCH_ARGS="
 
 PRECISION_ARGS="
     --attention-softmax-in-fp32 \
-    --fp16 \
-    --loss-scale 4096.0 \
+    --bf16 \
 "
+    # --loss-scale 4096.0 \
 
 TRAINING_ARGS="
     --clip-grad 1.0 \

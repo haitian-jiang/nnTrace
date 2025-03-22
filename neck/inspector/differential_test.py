@@ -5,7 +5,7 @@ from collections import defaultdict
 from pathlib import Path
 from neck.structs import TType
 from loguru import logger as clog
-from typing import Optional
+from typing import Optional, Iterable
 from concurrent.futures import ProcessPoolExecutor
 from neck import cpp_ext as neck_backend
 
@@ -110,7 +110,7 @@ def conduct_differential_test(
     oracle_run_dir: str, 
     specimen_run_dir: str, 
     output_dir: str,
-    t_type: Optional[TType] = None,
+    t_type: Optional[Iterable[TType]] = None,
     dtype: str = "bf16",
 ):
     oracle_run_dir = Path(oracle_run_dir)
@@ -119,10 +119,10 @@ def conduct_differential_test(
     output_dir.mkdir(exist_ok=True, parents=True)
 
     # form tasks
-    if not isinstance(t_type, TType) and t_type is not None:
-        raise ValueError(f"Invalid type for `t_type`: {type(t_type)}")
     if t_type is not None:
-        running_ttypes = [t_type]
+        running_ttypes = list(t_type)
+        assert all(isinstance(t, TType) for t in running_ttypes),\
+            "t_type must be a list of TType"
     else:
         running_ttypes = list(TType)
 
