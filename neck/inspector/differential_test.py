@@ -12,7 +12,7 @@ from neck import cpp_ext as neck_backend
 
 import re
 def parse_name(name):
-    pattern = r"batch\.(\d+)\|.*?layers\.(\d+)[\|\.](\S+)"
+    pattern = r"iter\.0\|batch\.(\d+)\|.*?layers\.(\d+)[\|\.](\S+)"
     m = re.match(pattern, name)
     if m:
         batch_num = m.group(1)
@@ -133,23 +133,32 @@ def conduct_differential_test(
         if not (output_dir / f"{t_type}.pt").exists()
     ]
 
-    with ProcessPoolExecutor() as executor:
-        futures = {
-            t_type: executor.submit(
-                _get_err_raw_and_store_result,
-                specimen_run_dir / f"{t_type}.pt",
-                oracle_run_dir / f"{t_type}.pt",
-                output_dir,
-                t_type,
-                dtype,
-            )
-            for t_type in running_ttypes
-        }
-        results = {
-            t_type: future.result()
-            for t_type, future in futures.items()
-        }
-        assert all(results.values()), "Some tasks failed!"
+    for t_type in running_ttypes:
+        _get_err_raw_and_store_result(
+            specimen_run_dir / f"{t_type}.pt",
+            oracle_run_dir / f"{t_type}.pt",
+            output_dir,
+            t_type,
+            dtype,
+        )
+
+    # with ProcessPoolExecutor() as executor:
+    #     futures = {
+    #         t_type: executor.submit(
+    #             _get_err_raw_and_store_result,
+    #             specimen_run_dir / f"{t_type}.pt",
+    #             oracle_run_dir / f"{t_type}.pt",
+    #             output_dir,
+    #             t_type,
+    #             dtype,
+    #         )
+    #         for t_type in running_ttypes
+    #     }
+    #     results = {
+    #         t_type: future.result()
+    #         for t_type, future in futures.items()
+    #     }
+    #     assert all(results.values()), "Some tasks failed!"
 
 
 __all__ = [
