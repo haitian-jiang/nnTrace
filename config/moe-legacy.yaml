@@ -1,0 +1,34 @@
+# run with https://github.com/NVIDIA/Megatron-LM/commit/e122536b7645edcb7ebf099b5c92a443f7dbf8e7
+# to reproduce https://github.com/NVIDIA/Megatron-LM/issues/599
+logging:
+  enable_logging: True  # if false, logging annotations will be nop.
+  type: "disk"  # disk, (redis)
+  disk:
+    log_path: "/home/ubuntu/nfs/neckruns"
+    run_name: null
+
+annotations:
+  param: "./legacy-moe-param.yaml"
+  module: "./legacy-moe-module.yaml"
+
+architecture:
+  vocab_size: 50257
+  num_experts: 2
+  # --- below will be replaced by megatron's args at run time --- #
+  num_layers: 24
+  hidden_size: 1024
+  num_attention_heads: 16
+  seq_length: 1024
+  share_embeddings_and_output_weights: True
+  datatype: "bf16"
+
+parallel:
+  framework: "Megatron-LM"
+  num_microbatches: 4  # for megatron, because cannot get it from runtime in old version
+  # --- below will be replaced by megatron's args at run time --- #
+  sequence_parallel: True
+  use_distributed_optimizer: False
+  calculate_per_token_loss: False
+
+neck:
+  rewrite: False

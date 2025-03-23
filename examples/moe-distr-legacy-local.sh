@@ -1,16 +1,32 @@
+# run with https://github.com/NVIDIA/Megatron-LM/commit/e122536b7645edcb7ebf099b5c92a443f7dbf8e7
+# to reproduce https://github.com/NVIDIA/Megatron-LM/issues/599
 export PYTHONWARNINGS=ignore
 # export CUDA_VISIBLE_DEVICES=
 export CUDA_DEVICE_MAX_CONNECTIONS=1
-export NECK_CONFIG_PATH=/home/ubuntu/repos/NECK/config/gpt.yaml
-export NECK_RUN_NAME=
+export OMP_NUM_THREADS=1
+export NCCL_ALGO=tree
+export NVTE_BATCH_MHA_P2P_COMM=1
+export NECK_CONFIG_PATH=/home/ubuntu/repos/NECK/config/legacy-moe.yaml
+export NECK_RUN_NAME=moe-tp2-sp-bug
+
+DISTRIBUTED_ARGS="
+    --nproc_per_node 2 \
+    --nnodes 1 \
+    --node_rank 0 \
+    --master_addr localhost \
+    --master_port 6000 \
+"
 
 PARALLEL_ARGS="
-    --tensor-model-parallel-size 1 \
+    --tensor-model-parallel-size 2 \
+    --sequence-parallel \
     --pipeline-model-parallel-size 1 \
     --context-parallel-size 1 \
 "
+    # --use-distributed-optimizer \
 
 ARCH_ARGS="
+    --num-experts 2 \
     --num-layers 24 \
     --hidden-size 1024 \
     --num-attention-heads 16 \
@@ -25,7 +41,7 @@ PRECISION_ARGS="
     --attention-softmax-in-fp32 \
     --bf16 \
 "
-    #--loss-scale 4096.0 \
+    # --loss-scale 4096.0 \
 
 TRAINING_ARGS="
     --clip-grad 1.0 \
@@ -38,10 +54,10 @@ TRAINING_ARGS="
     --lr-decay-iters 320000 \
     --lr-decay-style cosine \
     --weight-decay 1e-2 \
-    --use-legacy-models \
     --no-gradient-accumulation-fusion \
     --transformer-impl local \
 "
+    # --use-legacy-models \  # this option is useful in new versions where mcore is default
 
 IO_ARGS="
     --data-path /workspace/dataset/wikitext_text_document \
@@ -53,10 +69,9 @@ IO_ARGS="
     --eval-interval 1000 \
     --eval-iters 0 \
     --save /workspace/checkpoints \
-    --load /workspace/checkpoints \
-    --ckpt-format torch
+    --load /workspace/checkpoints
 "
 
-torchrun \
-/home/ubuntu/repos/Megatron-LM/pretrain_gpt.py \
+torchrun $DISTRIBUTED_ARGS \
+/home/ubuntu/repos/Megatron-LM-reproduce/pretrain_gpt.py \
 $PARALLEL_ARGS $ARCH_ARGS $PRECISION_ARGS $TRAINING_ARGS $IO_ARGS

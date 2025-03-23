@@ -1,0 +1,63 @@
+word_embeddings:
+  input:
+    tp_dim: null
+  output:
+    tp_dim: null
+
+embedding:
+  output:  # [seq_len / tp_size, batch_size, hidden_size]
+    tp_dim: null
+    sp_dim: 0
+
+input_norm:  # [seq_len / tp_size, batch_size, hidden_size]
+  input:
+    tp_dim: null
+    sp_dim: 0
+  output:
+    tp_dim: null
+    sp_dim: 0
+  grad:
+    input: True
+    output: True
+
+self_attention.query_key_value:
+  input:
+    tp_dim: null
+    sp_dim: 0
+  output:    # [seq_len, batch_size, 3 * hidden_size / tp_size]
+    tp_dim: -1
+  grad:
+    input: True
+    output: True
+
+self_attention.core_attention:
+  output:  # [seq_len, batch_size, hidden_size / tp_size]
+    tp_dim: -1
+  grad:
+    output: True
+
+self_attention.dense:
+  output:  # [seq_len / tp_size, batch_size, hidden_size]
+    tp_dim: null
+    sp_dim: 0
+  grad:
+    output: True
+
+post_attention_norm:
+  input:
+    tp_dim: null
+    sp_dim: 0
+  output:
+    tp_dim: null
+    sp_dim: 0
+  grad:
+    input: True
+    output: True
+
+layers.\d:
+  output:
+    tp_dim: null
+    sp_dim: 0
+  output_idx: 0
+  grad:
+    output: True
