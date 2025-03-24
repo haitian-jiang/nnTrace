@@ -3,6 +3,8 @@ export NVTE_BATCH_MHA_P2P_COMM=1
 export NVTE_APPLY_QK_LAYER_SCALING=1
 export NECK_CONFIG_PATH=/home/ubuntu/repos/NECK/config/gpt.yaml
 export NECK_RUN_NAME=
+# to fix: AssertionError: Using tensor model parallelism or context parallelism require setting the environment variable CUDA_DEVICE_MAX_CONNECTIONS to 1
+export CUDA_DEVICE_MAX_CONNECTIONS=1
 
 DISTRIBUTED_ARGS="
     --nproc_per_node 2 \

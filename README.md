@@ -15,7 +15,8 @@ Step 2. Install Megatron-LM and its supporting libraries
 
 - [Transformer Engine](https://github.com/NVIDIA/TransformerEngine):
   ```bash
-  pip install "transformer_engine[pytorch]"
+  # FIXME: transformer_engine 2.0 has bug
+  pip install transformer_engine[pytorch]==1.13.0
   
   # pip version is 1.13, need to compile from source for >= 2.0
   # below are the commands for installing TE from source
