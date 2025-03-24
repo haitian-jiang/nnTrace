@@ -117,9 +117,9 @@ Step 1. Modify Megatron-LM
 3. Optionally close dataset `num_samples` check.
    
    In earlier version of megatron (for example 
-   [`6140bf8`](https://github.com/NVIDIA/Megatron-LM/commits/6140bf8deb6f944f3bf1b71e5341b9489b42217a)), there is an assertion in 
-   `Megatron-LM/core/datasets/megatron_dataset.py`,  `__init__` function
-   of `MegatronDataset` class: `assert num_samples > 0`.
+   [`6140bf8`](https://github.com/NVIDIA/Megatron-LM/commits/6140bf8deb6f944f3bf1b71e5341b9489b42217a)),
+   there is an assertion in `Megatron-LM/megatron/core/datasets/megatron_dataset.py`,
+   `__init__` function of `MegatronDataset` class: `assert num_samples > 0`.
    It will prevent training with `--eval-iters 0`.
    Having this option set to 0 disables doing validation and test runs, which
    rules out their inference activation in the forward pass, and it is a must
