@@ -45,6 +45,7 @@ ARCH_ARGS="
 PRECISION_ARGS="
     --attention-softmax-in-fp32 \
     --bf16 \
+    --fp8-format hybrid \
 "
 
 TRAINING_ARGS="
@@ -65,7 +66,7 @@ TRAINING_ARGS="
 "
 
 IO_ARGS="
-    --data-path /workspace/dataset/wikitext/wikitext_text_document \
+    --data-path /workspace/dataset/wikitext_text_document \
     --vocab-file /workspace/dataset/gpt2-vocab.json \
     --merge-file /workspace/dataset/gpt2-merges.txt \
     --split 949,50,1 \
