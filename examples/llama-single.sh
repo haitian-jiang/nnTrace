@@ -1,4 +1,5 @@
 export PYTHONWARNINGS=ignore
+# export CUDA_VISIBLE_DEVICES=
 export NVTE_APPLY_QK_LAYER_SCALING=1
 export NECK_CONFIG_PATH=/home/ubuntu/repos/NECK/config/gpt.yaml
 export NECK_RUN_NAME=

@@ -15,10 +15,12 @@ Step 2. Install Megatron-LM and its supporting libraries
 
 - [Transformer Engine](https://github.com/NVIDIA/TransformerEngine):
   ```bash
-  pip install "transformer_engine[pytorch]"
+  pip install "transformer_engine[pytorch]==1.13.0"
+  # newest version on pip is 2.1.0, has bug on fp8
   
-  # pip version is 1.13, need to compile from source for >= 2.0
+
   # below are the commands for installing TE from source
+  # see https://developer.nvidia.com/cudnn-downloads for cudnn
   sudo apt-get -y install cudnn9-cuda-12
   git clone --branch stable --recursive https://github.com/NVIDIA/TransformerEngine.  git
   cd TransformerEngine

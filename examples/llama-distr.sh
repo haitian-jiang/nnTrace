@@ -1,4 +1,8 @@
 export PYTHONWARNINGS=ignore
+# export CUDA_VISIBLE_DEVICES=
+export CUDA_DEVICE_MAX_CONNECTIONS=1
+export OMP_NUM_THREADS=1
+export NCCL_ALGO=tree
 export NVTE_BATCH_MHA_P2P_COMM=1
 export NVTE_APPLY_QK_LAYER_SCALING=1
 export NECK_CONFIG_PATH=/home/ubuntu/repos/NECK/config/gpt.yaml
