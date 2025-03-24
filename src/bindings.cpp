@@ -1,5 +1,6 @@
 #include <pybind11/pybind11.h>
 #include "random_backend.hpp"
+#include "bitwise_rewrite.hpp"
 #include "rel_err.hpp"
 
 namespace py = pybind11;
@@ -11,4 +12,6 @@ PYBIND11_MODULE(cpp_ext, m) {
           py::arg("name"), py::arg("specimen"), py::arg("oracle"), 
           py::arg("norm") = "fro", "Docs");
     m.def("parallel_rel_err", &parallel_rel_err, "Docs");
+    m.def("rewrite_low_bits_bf16", &rewrite_low_bits_bf16, 
+          py::arg("activation"), py::arg("seeds"), py::arg("N") = 2, "Docs");
 }

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.12)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 17)
-project(cpp_ext)
+project(cpp_ext LANGUAGES CXX CUDA)
 
 # Find Python interpreter and development files in the current environment
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
@@ -17,7 +17,6 @@ if(NOT Python3_EXECUTABLE)
 endif()
 message(STATUS "Using Python interpreter: ${Python3_EXECUTABLE}")
 
-
 # Use pybind11's cmake module to locate the installation path for pybind11
 execute_process(
     COMMAND ${Python3_EXECUTABLE} -m pybind11 --cmakedir
@@ -26,17 +25,16 @@ execute_process(
 )
 find_package(pybind11 REQUIRED PATHS ${pybind11_DIR})
 
-
 # add torch into cmake path
 execute_process(
-    COMMAND python -c "import torch; import os; print(os.path.dirname(torch.__file__), end='')"
+    COMMAND ${Python3_EXECUTABLE} -c "import torch; import os; print(os.path.dirname(torch.__file__), end='')"
     OUTPUT_VARIABLE TORCH_PATH
 )
 list(APPEND CMAKE_PREFIX_PATH ${TORCH_PATH})
 
 # show torch version
 execute_process(
-    COMMAND python -c "import torch; print(torch.__version__, end='')"
+    COMMAND ${Python3_EXECUTABLE} -c "import torch; print(torch.__version__, end='')"
     OUTPUT_VARIABLE TORCH_VERSION
 )
 
@@ -45,12 +43,22 @@ message(STATUS "Found torch: version ${TORCH_VERSION}")
 message(STATUS "torch library: ${TORCH_LIBRARY}")
 message(STATUS "torch include: ${TORCH_INCLUDE_DIRS}")
 
+# CUDA settings
+enable_language(CUDA)
+find_package(CUDA REQUIRED)
+message(STATUS "CUDA Toolkit version: ${CUDA_VERSION}")
+message(STATUS "CUDA Libraries: ${CUDA_LIBRARIES}")
+message(STATUS "CUDA Include dirs: ${CUDA_INCLUDE_DIRS}")
+set(CMAKE_CUDA_ARCHITECTURES 70 75 80 86 89 90)
 
 # Create the C++ Python module, linking necessary files
-file(GLOB SRC_FILES src/*.cpp)
+file(GLOB SRC_FILES src/*.cpp src/*.cu)
 pybind11_add_module(${PROJECT_NAME} ${SRC_FILES})
 
-
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    CUDA_SEPARABLE_COMPILATION ON
+    CUDA_STANDARD 17
+)
 if (CMAKE_SYSTEM_NAME MATCHES "Linux")
     message(STATUS "Compiling on Linux")
     # Find libtorch_python.so for linux, but adding this for mac will cause symbol not found
@@ -65,9 +73,12 @@ endif()
 # target_link_libraries(${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX)
 
 # Link PyTorch to the module
-target_link_libraries(${PROJECT_NAME} PRIVATE ${TORCH_LIBRARIES})
-target_include_directories(${PROJECT_NAME} PRIVATE ${TORCH_INCLUDE_DIRS})
-target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_14)
+target_link_libraries(${PROJECT_NAME} PRIVATE ${TORCH_LIBRARIES} CUDA::cudart)
+target_include_directories(${PROJECT_NAME} PRIVATE 
+    ${TORCH_INCLUDE_DIRS}
+    ${CUDA_INCLUDE_DIRS}
+)
+target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 
 # To suppress warnings in PyTorch, you might want to set
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")

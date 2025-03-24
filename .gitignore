@@ -51,6 +51,8 @@ pip-delete-this-directory.txt
 .ipynb_checkpoints
 profile_default/
 ipython_config.py
-.idea/
 
+# IDE
 .DS_Store
+.idea/
+.vscode/c_cpp_properties.json
