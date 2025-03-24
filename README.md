@@ -22,7 +22,7 @@ Step 2. Install Megatron-LM and its supporting libraries
   # below are the commands for installing TE from source
   # see https://developer.nvidia.com/cudnn-downloads for cudnn
   sudo apt-get -y install cudnn9-cuda-12
-  git clone --branch stable --recursive https://github.com/NVIDIA/TransformerEngine.  git
+  git clone --branch stable --recursive https://github.com/NVIDIA/TransformerEngine.git
   cd TransformerEngine
   export NVTE_FRAMEWORK=pytorch
   pip install . 
@@ -101,11 +101,11 @@ Step 1. Modify Megatron-LM
    `deallocate_pipeline_outputs`, and set its value to False.
    (I have no idea why megatron hard code it.)
    ```python
-   x  kw_args['deallocate_pipeline_outputs'] = True
-   √  kw_args['deallocate_pipeline_outputs'] = False
+   ✗  # kw_args['deallocate_pipeline_outputs'] = True
+   ✔  kw_args['deallocate_pipeline_outputs'] = False
    ```
 
-2. Optionally turn off `save_checkpointing`.
+2. Turn off `save_checkpointing`.
    
    Megatron-LM will save the trained parameters each time after training.
    It can be annoying for experiments and takes long time.
@@ -113,6 +113,16 @@ Step 1. Modify Megatron-LM
 
    In file `Megatron-LM/megatron/training/checkpointing.py`, find the function
    `save_checkpoint`, and make it directly return.
+
+   **NOTE**: There are other alternative ways to remove the checkpoints, like
+   manually remove them after each experiment, or using a monitoring process to
+   remove the inodes once any writes happen to the checkpoint saving directory.
+   But they are all more complicated than turning off checkpointing.
+   Megatron will read these checkpoints before training and skip the
+   training if the checkpoints' iteration count is no less than the
+   iterations to train.
+   So if the checkpoint is not removed, or not skipped saving, later experiments
+   will skip the training at all, making the tracing in vain.
 
 3. Optionally close dataset `num_samples` check.
    
@@ -209,6 +219,15 @@ It specifies for each module, how should the activations be sharded, whether and
 which input / output activation tensors (and their gradients) need to be logged,
 and whether to rewrite them to have a fine-grained localization.
 
+Step 4. Set up NECK run name.
+NECK uses run name (the name for each experiment) to name the log folders.
+The run name can be set in the aforementioned configuration file.  It can also
+be set in environment variable `NECK_RUN_NAME`.  The environment variable has a
+higher priority to be used over the name from configuration file.  If neither
+were set, NECK will use the storing time as the folder name.
+
+**NOTE**: For step 3 and step 4, they can be set in the shell scripts for
+running Megatron-LM.  See `examples/` for more details.
 
 
 ## Notice
@@ -245,7 +264,7 @@ After that, we can conduct the differential testing with for the specimen with
 the oracle using the following interface:
 ```python
 import neck
-neck.conduct_differential_test("oracle", "specimen", "diff_dir")
+neck.conduct_differential_test("oracle_run_name", "specimen_run_name", "diff_dir")
 ```
 The differences of the two runs are stored in `diff_dir`, and I haven't write
 the tool for analyzing this output.  But user can now directly look at the
