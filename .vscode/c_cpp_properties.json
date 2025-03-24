@@ -1,0 +1,22 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/src",
+                "/usr/local/cuda/include",
+                "/home/ubuntu/nfs/miniconda3/envs/neck/include/python3.10",
+                "/home/ubuntu/nfs/miniconda3/envs/neck/lib/python3.10/site-packages/pybind11/include",
+                "/home/ubuntu/nfs/miniconda3/envs/neck/lib/python3.10/site-packages/torch/include",
+                "/home/ubuntu/nfs/miniconda3/envs/neck/lib/python3.10/site-packages/torch/include/torch/csrc/api/include"
+            ],
+            "defines": [],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c17",
+            "cppStandard": "gnu++17",
+            "intelliSenseMode": "linux-gcc-x64"
+        }
+    ],
+    "version": 4
+}

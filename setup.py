@@ -17,21 +17,26 @@ class CMakeBuild(build_ext):
         extdir = os.path.abspath(os.path.join(self.get_ext_fullpath(ext.name), "..", "neck"))
         cmake_args = [
             f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={extdir}",
+            "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
             # f"-DPYTHON_EXECUTABLE={sys.executable}",
             # "-DCMAKE_BUILD_TYPE=Release",
             # "-DCMAKE_CXX_FLAGS_RELEASE=-O3",
         ]
-        build_args = []
+        build_args = [
+            "--parallel", str(os.cpu_count() or 1), 
+        ]
 
-        if not os.path.exists(self.build_temp):
-            os.makedirs(self.build_temp)
+        build_temp = os.path.abspath(os.path.join(".", 'build'))
+
+        if not os.path.exists(build_temp):
+            os.makedirs(build_temp)
 
         # Configure and build the extension with CMake
         subprocess.check_call(
-            ["cmake", os.path.abspath(".")] + cmake_args, cwd=self.build_temp
+            ["cmake", os.path.abspath(".")] + cmake_args, cwd=build_temp
         )
         subprocess.check_call(
-            ["cmake", "--build", "."] + build_args, cwd=self.build_temp
+            ["cmake", "--build", "."] + build_args, cwd=build_temp
         )
 
 setup(

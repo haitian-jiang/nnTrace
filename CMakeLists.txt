@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.12)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 17)
 project(cpp_ext)
 
@@ -40,7 +41,6 @@ execute_process(
 )
 
 find_package(Torch REQUIRED)
-include_directories(${TORCH_INCLUDE_DIRS})
 message(STATUS "Found torch: version ${TORCH_VERSION}")
 message(STATUS "torch library: ${TORCH_LIBRARY}")
 message(STATUS "torch include: ${TORCH_INCLUDE_DIRS}")
