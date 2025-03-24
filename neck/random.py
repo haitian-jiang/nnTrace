@@ -3,7 +3,10 @@ import torch
 import xxhash
 from typing import Optional
 from neck.structs import ShardNDSlices
-from .cpp_ext import seed_to_rand_parallel, rewrite_low_bits_bf16
+from .cpp_ext import (
+    seed_to_rand_parallel, 
+    rewrite_low_bits_bf16 as _rewrite_low_bits_bf16,
+)
 
 
 def _seed_to_seeds(seed: int, shard_slice: ShardNDSlices) -> torch.Tensor:
@@ -114,10 +117,15 @@ def rewrite_low_bits(
     seeds = _seed_to_seeds(seed, shard_slice).to(activation.device)
     
     if activation.dtype == torch.bfloat16:
-        rewrite_low_bits_bf16(activation, seeds, nbits)
+        _rewrite_low_bits_bf16(activation, seeds, nbits)
     elif activation.dtype == torch.float16:
         raise NotImplementedError("Low bits rewrite for float16 is not implemented.")
     else:
         raise ValueError("Activation tensor must be float16 or bfloat16.")
 
-__all__ = ["rand", "randn", "rand_mask"]
+__all__ = [
+    "rand", 
+    "randn", 
+    "rand_mask",
+    "rewrite_low_bits",
+]

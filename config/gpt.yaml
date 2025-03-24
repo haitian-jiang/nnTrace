@@ -2,7 +2,7 @@ logging:
   enable_logging: True  # if false, logging annotations will be nop.
   type: "disk"  # disk, (redis)
   disk:
-    log_path: "/home/ubuntu/nfs/neckruns"
+    log_path: "/home/ubuntu/neckruns"
     run_name: null
 
 annotations:
@@ -28,4 +28,4 @@ parallel:
   calculate_per_token_loss: False
 
 neck:
-  rewrite: False
+  rewrite: False  # "full" or an int > 0 representing how many LSD bits to rewrite

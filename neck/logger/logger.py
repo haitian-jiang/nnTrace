@@ -57,7 +57,7 @@ def save_logs(
         p.mkdir(parents=True, exist_ok=True)
         save_file = p / f"rank{rank}.pt"
     if len(LOGS[t_type]) == 0:
-        clog.warning(f"[Rank {rank}] ⚠️ Empty logs for {t_type}, not saving."
+        clog.warning(f"[Rank {rank}] ⚠️ Empty logs for {t_type}, not saving. "
                      f"Killed or training skipped due to existing checkpoints.")
         return
     torch.save(LOGS[t_type], save_file)

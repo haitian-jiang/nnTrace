@@ -190,27 +190,22 @@ class FwdPreRewriteHook(FwdPreHook):
         new_activation = 0.02 * (new_activation-0.5)  # rescale to [-0.01, 0.01]
         tensor.data.copy_(new_activation.data)
 
-    def __call__(
-        self, 
-        module: torch.nn.Module, 
-        args: tuple,
-    ) -> None:
-        assert module is self.module, \
-            f"module mismatch in {self.canon_mod_name} pre rewrite"
-        if len(args) == 1:
-            self.m_annotation.input_idx = 0
-        if self.m_annotation.input_idx is not None:
-            idx: list[int] = self.m_annotation.input_idx
-            for i in idx:
-                self._rewrite_input(args[i], i)
-        else:  # TODO: can force use must provide input_idx
-            for i, arg in enumerate(args):
-                if not isinstance(arg, torch.Tensor):
-                    continue
-                # TODO: inputs use the same t_annotation, but they may not be sharded in the same way.
-                self._rewrite_input(arg, i)
-class FwdPostHook(ModuleHookBase, ABC):
 
+class FwdPreBitRewriteHook(FwdPreHook):
+    def __init__(self, *args, nbits: int = 2):
+        super().__init__(*args)
+        self.nbits = nbits
+
+    def action(self, tensor: torch.Tensor, i: int) -> None:
+        assert isinstance(tensor, torch.Tensor), "fwd_pre_rewrite expects a tensor"
+        canon_act_name = self.get_canon_act_grad_name("input", i)
+        shard_slice = canonical.infer_slice(tensor.shape, self.t_annotation)
+        # clog.debug(f"Rewriting {canon_act_name} with {self.nbits} bits")
+        neck.random.rewrite_low_bits(canon_act_name, shard_slice, 
+                                     tensor, self.nbits)
+
+
+class FwdPostHook(ModuleHookBase, ABC):
     @abstractmethod
     def action(self, activation: torch.Tensor, i: int) -> None:
         raise NotImplementedError
@@ -260,29 +255,20 @@ class FwdPostRewriteHook(FwdPostHook):
         new_activation = 0.02 * (new_activation-0.5)  # rescale to [-0.01, 0.01]
         tensor.data.copy_(new_activation.data)
 
-    def __call__(
-        self,
-        module: torch.nn.Module,
-        args: tuple,
-        output: torch.Tensor | tuple,
-    ):
-        # checkings
-        if self.module is not None:
-            assert module == self.module, f"module mismatch in {self.canon_mod_name} post log"
-        assert isinstance(output, torch.Tensor) or isinstance(output, tuple), \
-            "fwd_post_log expects a tensor or a tuple of tensors" 
-        
-        if isinstance(output, torch.Tensor):
-            self._rewrite_output(output, 0)
-        elif self.m_annotation.output_idx is not None:
-            idx = self.m_annotation.output_idx
-            activation = output[idx]
-            assert isinstance(activation, torch.Tensor), "fwd_post_log expects a tensor"
-            self._rewrite_output(activation, idx)
-        else:
-            for idx, activation in enumerate(output):
-                if isinstance(activation, torch.Tensor):
-                    self._rewrite_output(activation, idx)
+
+class FwdPostBitRewriteHook(FwdPostHook):
+    def __init__(self, *args, nbits: int = 2):
+        super().__init__(*args)
+        self.nbits = nbits
+    
+    def action(self, tensor: torch.Tensor, idx: int = 0) -> None:
+        assert isinstance(tensor, torch.Tensor), "fwd_post_rewrite expects a tensor"
+        canon_act_name = self.get_canon_act_grad_name("output", idx)
+        shard_slice = canonical.infer_slice(tensor.shape, self.t_annotation)
+        # clog.debug(f"Rewriting {canon_act_name} with {self.nbits} bits")
+        neck.random.rewrite_low_bits(canon_act_name, shard_slice,
+                                     tensor, self.nbits)
+
 
 class BwdPreHook(ModuleHookBase, ABC):
 
@@ -341,24 +327,19 @@ class BwdPreRewriteHook(BwdPreHook):
         grad.data.copy_(new_grad.data)
 
 
-    def __call__(
-        self,
-        module: torch.nn.Module,
-        grad_output: tuple[torch.Tensor],
-    ) -> None:
-        if self.m_annotation.output_idx is not None:
-            i = self.m_annotation.output_idx
-            grad = grad_output[i]
-            assert isinstance(grad, torch.Tensor), \
-                f"Got {type(grad)} grad_output in {self.canon_mod_name}"
-            self._rewrite_grad_output(grad, i)
-            return
-        for i, grad in enumerate(grad_output):
-            if grad is None:
-                continue
-            assert isinstance(grad, torch.Tensor), \
-                f"bwd pre hook get non tensor: {type(grad)}"
-            self._rewrite_grad_output(grad, i)
+class BwdPreBitRewriteHook(BwdPreHook):
+    def __init__(self, *args, nbits: int = 2):
+        super().__init__(*args)
+        self.nbits = nbits
+    
+    def action(self, grad: torch.Tensor, idx: int) -> None:
+        assert isinstance(grad, torch.Tensor), \
+            f"bwd pre hook get non tensor: {type(grad)}"
+        canon_grad_name = self.get_canon_act_grad_name("output", idx, True)
+        shard_slice = canonical.infer_slice(grad.shape, self.t_annotation)
+        # clog.debug(f"Rewriting {canon_grad_name} with {self.nbits} bits")
+        neck.random.rewrite_low_bits(canon_grad_name, shard_slice,
+                                     grad, self.nbits)
 
 
 class BwdPostLogHook(ModuleHookBase):
@@ -401,16 +382,33 @@ def register_hook(
     if annotation.rewrite_input:
         assert annotation.input is not None, \
             f"Cannot rewrite input without tensor annotation: {canon_mod_name}"
-        module.register_forward_pre_hook(
-            FwdPreRewriteHook(
-                canon_mod_name,
-                annotation.input,
-                annotation,
-                module,
-                vp_rank,
-            ),
-            prepend=True,
-        )
+        if CONFIG.neck.rewrite == "full":
+            module.register_forward_pre_hook(
+                FwdPreRewriteHook(
+                    canon_mod_name,
+                    annotation.input,
+                    annotation,
+                    module,
+                    vp_rank,
+                ),
+                prepend=True,
+            )
+        elif isinstance(CONFIG.neck.rewrite, int):  # TODO: check range
+            module.register_forward_pre_hook(
+                FwdPreBitRewriteHook(
+                    canon_mod_name,
+                    annotation.input,
+                    annotation,
+                    module,
+                    vp_rank,
+                    nbits=CONFIG.neck.rewrite,
+                ),
+                prepend=True,
+            )
+        else:
+            raise ValueError(
+                f"Invalid rewrite_input value: {CONFIG.neck.rewrite}"
+            )
 
     if annotation.input is not None:
         module.register_forward_pre_hook(
@@ -442,15 +440,33 @@ def register_hook(
         )
     
     if annotation.rewrite_output:
-        module.register_forward_hook(
-            FwdPostRewriteHook(
-                canon_mod_name,
-                annotation.output,
-                annotation,
-                module,
-                vp_rank,
+        assert annotation.output is not None, \
+            f"Cannot rewrite output without tensor annotation: {canon_mod_name}"
+        if CONFIG.neck.rewrite == "full":
+            module.register_forward_hook(
+                FwdPostRewriteHook(
+                    canon_mod_name,
+                    annotation.output,
+                    annotation,
+                    module,
+                    vp_rank,
+                )
             )
-        )
+        elif isinstance(CONFIG.neck.rewrite, int):  # TODO: check range
+            module.register_forward_hook(
+                FwdPostBitRewriteHook(
+                    canon_mod_name,
+                    annotation.output,
+                    annotation,
+                    module,
+                    vp_rank,
+                    nbits=CONFIG.neck.rewrite,
+                )
+            )
+        else:  # TODO: check in config on parsing
+            raise ValueError(
+                f"Invalid rewrite_output value: {CONFIG.neck.rewrite}"
+            )
 
     if annotation.grad is None: 
         return
@@ -472,16 +488,33 @@ def register_hook(
     if annotation.rewrite_grad_output:
         assert annotation.output is not None, \
             f"Cannot rewrite output without tensor annotation: {canon_mod_name}"
-        module.register_full_backward_pre_hook(
-            BwdPreRewriteHook(
-                canon_mod_name,
-                annotation.output,
-                annotation,
-                module,
-                vp_rank,
-            ),
-            prepend=True
-        )
+        if CONFIG.neck.rewrite == "full":
+            module.register_full_backward_pre_hook(
+                BwdPreRewriteHook(
+                    canon_mod_name,
+                    annotation.output,
+                    annotation,
+                    module,
+                    vp_rank,
+                ),
+                prepend=True
+            )
+        elif isinstance(CONFIG.neck.rewrite, int):  # TODO: check range
+            module.register_full_backward_pre_hook(
+                BwdPreBitRewriteHook(
+                    canon_mod_name,
+                    annotation.output,
+                    annotation,
+                    module,
+                    vp_rank,
+                    nbits=CONFIG.neck.rewrite,
+                ),
+                prepend=True
+            )
+        else:  # TODO: check in config on parsing
+            raise ValueError(
+                f"Invalid rewrite_grad_output value: {CONFIG.neck.rewrite}"
+            )
 
     if annotation.grad.get("output", None):
         assert annotation.output is not None, \
