@@ -5,7 +5,7 @@ from typing import Optional
 from neck.structs import ShardNDSlices
 from .cpp_ext import (
     seed_to_rand_parallel, 
-    rewrite_low_bits_bf16 as _rewrite_low_bits_bf16,
+    # rewrite_low_bits_bf16 as _rewrite_low_bits_bf16,
 )
 
 
