@@ -1,8 +1,8 @@
 export PYTHONWARNINGS=ignore
 # export CUDA_VISIBLE_DEVICES=
 export NVTE_APPLY_QK_LAYER_SCALING=1
-export NECK_CONFIG_PATH=/home/ubuntu/repos/NECK/config/gpt.yaml
-export NECK_RUN_NAME=
+export NECK_CONFIG_PATH=/home/ubuntu/efs/zhenyus/NECK/config/gpt.yaml
+export NECK_RUN_NAME=oracle
 
 PARALLEL_ARGS="
     --tensor-model-parallel-size 1 \
@@ -58,7 +58,7 @@ TRAINING_ARGS="
 "
 
 IO_ARGS="
-    --data-path /workspace/dataset/wikitext_text_document \
+    --data-path /workspace/dataset/wikitext/wikitext_text_document \
     --vocab-file /workspace/dataset/gpt2-vocab.json \
     --merge-file /workspace/dataset/gpt2-merges.txt \
     --split 949,50,1 \
@@ -71,5 +71,5 @@ IO_ARGS="
 "
 
 torchrun \
-/home/ubuntu/repos/Megatron-LM/pretrain_gpt.py \
+/home/ubuntu/efs/zhenyus/Megatron-LM/pretrain_gpt.py \
 $PARALLEL_ARGS $ARCH_ARGS $PRECISION_ARGS $TRAINING_ARGS $IO_ARGS

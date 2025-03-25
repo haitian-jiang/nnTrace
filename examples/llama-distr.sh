@@ -5,8 +5,8 @@ export OMP_NUM_THREADS=1
 export NCCL_ALGO=tree
 export NVTE_BATCH_MHA_P2P_COMM=1
 export NVTE_APPLY_QK_LAYER_SCALING=1
-export NECK_CONFIG_PATH=/home/ubuntu/repos/NECK/config/gpt.yaml
-export NECK_RUN_NAME=
+export NECK_CONFIG_PATH=/home/ubuntu/efs/zhenyus/NECK/config/gpt.yaml
+export NECK_RUN_NAME=specimen
 
 DISTRIBUTED_ARGS="
     --nproc_per_node 2 \
@@ -70,7 +70,7 @@ TRAINING_ARGS="
 "
 
 IO_ARGS="
-    --data-path /workspace/dataset/wikitext_text_document \
+    --data-path /workspace/dataset/wikitext/wikitext_text_document \
     --vocab-file /workspace/dataset/gpt2-vocab.json \
     --merge-file /workspace/dataset/gpt2-merges.txt \
     --split 949,50,1 \
@@ -83,5 +83,5 @@ IO_ARGS="
 "
 
 torchrun $DISTRIBUTED_ARGS \
-/home/ubuntu/repos/Megatron-LM/pretrain_gpt.py \
+/home/ubuntu/efs/zhenyus/Megatron-LM/pretrain_gpt.py \
 $PARALLEL_ARGS $ARCH_ARGS $PRECISION_ARGS $TRAINING_ARGS $IO_ARGS
