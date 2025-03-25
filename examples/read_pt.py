@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 from neck.structs import TType
 
-neckruns = Path("/home/ubuntu/nfs/neckruns/")
+neckruns = Path("/home/ubuntu/neckruns/")
 
 run_name = sys.argv[1]
 log_folder = neckruns / run_name

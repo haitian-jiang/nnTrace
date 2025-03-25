@@ -36,8 +36,8 @@ tuple<string, double> tensor_rel_err_with_name(
     } else {
         throw std::invalid_argument("Unsupported norm type: " + norm);
     }
-    if (oracle_norm.item<double>() < 1e-14 * oracle_fp64.numel()) {
-        if (abs_err.item<double>() < 2e-14 * abs_err.numel()) {
+    if (oracle_norm.item<double>() < 1e-20 * oracle_fp64.numel()) {
+        if (abs_err.item<double>() < 2e-20 * oracle_fp64.numel()) {
             return std::make_tuple(name, 0);
         } else {
             return std::make_tuple(name, 615.0);
