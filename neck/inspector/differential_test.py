@@ -112,6 +112,7 @@ def conduct_differential_test(
     output_dir: str,
     t_type: Optional[Iterable[TType]] = None,
     dtype: str = "bf16",
+    parallel: bool = False,
 ):
     oracle_run_dir = Path(oracle_run_dir)
     specimen_run_dir = Path(specimen_run_dir)
@@ -133,32 +134,33 @@ def conduct_differential_test(
         if not (output_dir / f"{t_type}.pt").exists()
     ]
 
-    for t_type in running_ttypes:
-        _get_err_raw_and_store_result(
-            specimen_run_dir / f"{t_type}.pt",
-            oracle_run_dir / f"{t_type}.pt",
-            output_dir,
-            t_type,
-            dtype,
-        )
-
-    # with ProcessPoolExecutor() as executor:
-    #     futures = {
-    #         t_type: executor.submit(
-    #             _get_err_raw_and_store_result,
-    #             specimen_run_dir / f"{t_type}.pt",
-    #             oracle_run_dir / f"{t_type}.pt",
-    #             output_dir,
-    #             t_type,
-    #             dtype,
-    #         )
-    #         for t_type in running_ttypes
-    #     }
-    #     results = {
-    #         t_type: future.result()
-    #         for t_type, future in futures.items()
-    #     }
-    #     assert all(results.values()), "Some tasks failed!"
+    if not parallel:
+        for t_type in running_ttypes:
+            _get_err_raw_and_store_result(
+                specimen_run_dir / f"{t_type}.pt",
+                oracle_run_dir / f"{t_type}.pt",
+                output_dir,
+                t_type,
+                dtype,
+            )
+    else:
+        with ProcessPoolExecutor() as executor:
+            futures = {
+                t_type: executor.submit(
+                    _get_err_raw_and_store_result,
+                    specimen_run_dir / f"{t_type}.pt",
+                    oracle_run_dir / f"{t_type}.pt",
+                    output_dir,
+                    t_type,
+                    dtype,
+                )
+                for t_type in running_ttypes
+            }
+            results = {
+                t_type: future.result()
+                for t_type, future in futures.items()
+            }
+            assert all(results.values()), "Some tasks failed!"
 
 
 __all__ = [

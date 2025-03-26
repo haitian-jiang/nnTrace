@@ -42,6 +42,8 @@ self_attention.linear_qkv:
     sp_dim: 0
   output:
     tp_dim: -1
+  rewrite_output: True
+  rewrite_grad_output: True
   grad:
     input: True
     output: True
@@ -51,6 +53,8 @@ self_attention.core_attention:
     tp_dim: -2  # share the same tp dim, can make it finer by having a list
   output:
     tp_dim: -1
+  rewrite_output: True
+  rewrite_grad_output: True
   input_idx: [0, 1, 2]  # Q, K, V, mask, and we don't want mask
   grad:
     input: True
@@ -60,6 +64,8 @@ self_attention.linear_proj:
   output:
     tp_dim: null
     sp_dim: 0
+  rewrite_output: True
+  rewrite_grad_output: True
   output_idx: 0  # 1 is output_bias, directly copied from self.bias
   grad:
     output: True
@@ -80,6 +86,8 @@ mlp.linear_fc1:  # if record input, then input has sp dim 0
   output: 
     tp_dim: -1  # (seq_len, batch_size, hidden_size)
   output_idx: 0  # 1 is output_bias
+  rewrite_output: True
+  rewrite_grad_output: True
   grad:
     output: True
 
@@ -90,6 +98,8 @@ mlp.linear_fc2:
     tp_dim: null
     sp_dim: 0
   output_idx: 0  # 1 is output_bias
+  rewrite_output: True
+  rewrite_grad_output: True
   grad:
     input: True
     output: True
