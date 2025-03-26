@@ -4,8 +4,8 @@ export CUDA_DEVICE_MAX_CONNECTIONS=1
 export OMP_NUM_THREADS=1
 export NCCL_ALGO=tree
 export NVTE_BATCH_MHA_P2P_COMM=1
-export NECK_CONFIG_PATH=/home/ubuntu/repos/NECK/config/gpt.yaml
-export NECK_RUN_NAME=
+export NECK_CONFIG_PATH=/home/ubuntu/efs/zhenyus/NECK/config/gpt.yaml
+export NECK_RUN_NAME=slapo_single
 
 # NOTE: No need to enable NECK in this experiment!  Can recover the patches for neck.
 # Just need to patch the VocabEmbedding in layers.py to become buggy.
@@ -41,16 +41,9 @@ export NECK_RUN_NAME=
 
 
 
-DISTRIBUTED_ARGS="
-    --nproc_per_node 2 \
-    --nnodes 1 \
-    --node_rank 0 \
-    --master_addr localhost \
-    --master_port 6000 \
-"
 
 PARALLEL_ARGS="
-    --tensor-model-parallel-size 2 \
+    --tensor-model-parallel-size 1 \
     --pipeline-model-parallel-size 1 \
     --context-parallel-size 1 \
 "
@@ -90,18 +83,18 @@ TRAINING_ARGS="
 "
 
 IO_ARGS="
-    --data-path /workspace/dataset/wikitext_text_document \
+    --data-path /workspace/dataset/wikitext/wikitext_text_document \
     --vocab-file /workspace/dataset/gpt2-vocab.json \
     --merge-file /workspace/dataset/gpt2-merges.txt \
     --split 949,50,1 \
     --log-interval 100 \
     --save-interval 10000 \
     --eval-interval 1000 \
-    --eval-iters 0 \
-    --save /workspace/checkpoints \
-    --load /workspace/checkpoints
+    --eval-iters 1 \
+    --save /workspace/checkpoints/slapo-tp-single \
+    --load /workspace/checkpoints/slapo-tp-single
 "
 
-torchrun $DISTRIBUTED_ARGS \
-/home/ubuntu/repos/Megatron-LM/pretrain_gpt.py \
+torchrun \
+/home/ubuntu/efs/zhenyus/Megatron-LM/pretrain_gpt.py \
 $PARALLEL_ARGS $ARCH_ARGS $PRECISION_ARGS $TRAINING_ARGS $IO_ARGS

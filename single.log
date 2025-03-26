@@ -1,0 +1,46 @@
+ validation loss at iteration 9000 | lm loss value: 3.479640E+00 | lm loss PPL: 3.244804E+01 | 
+------------------------------------------------------------------------------------------------
+ [2025-03-25 22:50:29] iteration     9100/   10000 | consumed samples:       145600 | elapsed time per iteration (ms): 653.8 | learning rate: 1.498802E-04 | global batch size:    16 | lm loss: 3.449699E+00 | loss scale: 1.0 | grad norm: 0.632 | num zeros: 0 | number of skipped iterations:   0 | number of nan iterations:   0 |
+ [2025-03-25 22:51:34] iteration     9200/   10000 | consumed samples:       147200 | elapsed time per iteration (ms): 653.5 | learning rate: 1.498761E-04 | global batch size:    16 | lm loss: 3.449167E+00 | loss scale: 1.0 | grad norm: 0.629 | num zeros: 0 | number of skipped iterations:   0 | number of nan iterations:   0 |
+ [2025-03-25 22:52:39] iteration     9300/   10000 | consumed samples:       148800 | elapsed time per iteration (ms): 652.1 | learning rate: 1.498720E-04 | global batch size:    16 | lm loss: 3.451515E+00 | loss scale: 1.0 | grad norm: 0.637 | num zeros: 0 | number of skipped iterations:   0 | number of nan iterations:   0 |
+ [2025-03-25 22:53:44] iteration     9400/   10000 | consumed samples:       150400 | elapsed time per iteration (ms): 650.3 | learning rate: 1.498677E-04 | global batch size:    16 | lm loss: 3.451518E+00 | loss scale: 1.0 | grad norm: 0.632 | num zeros: 0 | number of skipped iterations:   0 | number of nan iterations:   0 |
+ [2025-03-25 22:54:49] iteration     9500/   10000 | consumed samples:       152000 | elapsed time per iteration (ms): 648.9 | learning rate: 1.498634E-04 | global batch size:    16 | lm loss: 3.450302E+00 | loss scale: 1.0 | grad norm: 0.635 | num zeros: 0 | number of skipped iterations:   0 | number of nan iterations:   0 |
+ [2025-03-25 22:55:54] iteration     9600/   10000 | consumed samples:       153600 | elapsed time per iteration (ms): 648.2 | learning rate: 1.498591E-04 | global batch size:    16 | lm loss: 3.437340E+00 | loss scale: 1.0 | grad norm: 0.623 | num zeros: 0 | number of skipped iterations:   0 | number of nan iterations:   0 |
+ [2025-03-25 22:56:59] iteration     9700/   10000 | consumed samples:       155200 | elapsed time per iteration (ms): 649.1 | learning rate: 1.498546E-04 | global batch size:    16 | lm loss: 3.433961E+00 | loss scale: 1.0 | grad norm: 0.640 | num zeros: 0 | number of skipped iterations:   0 | number of nan iterations:   0 |
+ [2025-03-25 22:58:04] iteration     9800/   10000 | consumed samples:       156800 | elapsed time per iteration (ms): 649.8 | learning rate: 1.498501E-04 | global batch size:    16 | lm loss: 3.431544E+00 | loss scale: 1.0 | grad norm: 0.639 | num zeros: 0 | number of skipped iterations:   0 | number of nan iterations:   0 |
+ [2025-03-25 22:59:08] iteration     9900/   10000 | consumed samples:       158400 | elapsed time per iteration (ms): 644.6 | learning rate: 1.498456E-04 | global batch size:    16 | lm loss: 3.414208E+00 | loss scale: 1.0 | grad norm: 0.625 | num zeros: 0 | number of skipped iterations:   0 | number of nan iterations:   0 |
+ [2025-03-25 23:00:13] iteration    10000/   10000 | consumed samples:       160000 | elapsed time per iteration (ms): 643.9 | learning rate: 1.498409E-04 | global batch size:    16 | lm loss: 3.424165E+00 | loss scale: 1.0 | grad norm: 0.650 | num zeros: 0 | number of skipped iterations:   0 | number of nan iterations:   0 |
+[WARNING  | megatron.core.rerun_state_machine]: Setting RerunStateMachine mode disabled
+(min, max) time across ranks (ms):
+    evaluate .......................................: (204.17, 204.17)
+[WARNING  | megatron.core.rerun_state_machine]: Setting RerunStateMachine mode disabled
+[WARNING  | megatron.core.rerun_state_machine]: Setting RerunStateMachine mode disabled
+-------------------------------------------------------------------------------------------------
+ validation loss at iteration 10000 | lm loss value: 3.421399E+00 | lm loss PPL: 3.061220E+01 | 
+-------------------------------------------------------------------------------------------------
+saving checkpoint at iteration   10000 to /workspace/checkpoints/slapo-tp-single in torch_dist format
+  successfully saved checkpoint from iteration   10000 to /workspace/checkpoints/slapo-tp-single [ t 1/1, p 1/1 ]
+(min, max) time across ranks (ms):
+    save-checkpoint ................................: (17166.67, 17166.67)
+[after training is done] datetime: 2025-03-25 23:00:30 
+[WARNING  | megatron.core.rerun_state_machine]: Setting RerunStateMachine mode disabled
+Evaluating on 16 samples
+Evaluating iter 1/1
+(min, max) time across ranks (ms):
+    evaluate .......................................: (218.25, 218.25)
+[WARNING  | megatron.core.rerun_state_machine]: Setting RerunStateMachine mode disabled
+[WARNING  | megatron.core.rerun_state_machine]: Setting RerunStateMachine mode disabled
+-------------------------------------------------------------------------------------------------------------------
+ validation loss at iteration 10000 on validation set | lm loss value: 3.511097E+00 | lm loss PPL: 3.348500E+01 | 
+-------------------------------------------------------------------------------------------------------------------
+[WARNING  | megatron.core.rerun_state_machine]: Setting RerunStateMachine mode disabled
+Evaluating on 16 samples
+Evaluating iter 1/1
+(min, max) time across ranks (ms):
+    evaluate .......................................: (205.16, 205.16)
+[WARNING  | megatron.core.rerun_state_machine]: Setting RerunStateMachine mode disabled
+[WARNING  | megatron.core.rerun_state_machine]: Setting RerunStateMachine mode disabled
+-------------------------------------------------------------------------------------------------------------
+ validation loss at iteration 10000 on test set | lm loss value: 3.394706E+00 | lm loss PPL: 2.980588E+01 | 
+-------------------------------------------------------------------------------------------------------------
+[rank0]:[W325 23:00:31.897579281 ProcessGroupNCCL.cpp:1250] Warning: WARNING: process group has NOT been destroyed before we destruct ProcessGroupNCCL. On normal program exit, the application should call destroy_process_group to ensure that any pending NCCL operations have finished in this process. In rare cases this process can exit before this point and block the progress of another member of the process group. This constraint has always been present,  but this warning has only been added since PyTorch 2.4 (function operator())
