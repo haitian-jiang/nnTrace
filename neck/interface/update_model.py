@@ -12,11 +12,14 @@ def prior_optim(
     model: torch.nn.Module,
     vp_rank: Optional[int] = None,
     log_main_grad: bool = True,
-    rewrite_main_grad: bool = False,
+    rewrite_main_grad: Optional[str | int | float] = None,
 ) -> None:
     """
     Log the main gradient of the model parameters before the optimizer step.
-    Rewrite the main grad to eliminate the errors to test the optimizer.
+    Optionally rewrite main_grad to eliminate the errors to test the optimizer.
+    rewrite_main_grad: None (default) means no rewrite, "full" means fully 
+    rewrite with random values, or a float/int to scale the main_grad by that 
+    value to make the bug error more prominent if there is any.
     """
     
     vp_rank = _check_vp_rank(model, vp_rank)
@@ -47,12 +50,13 @@ def prior_optim(
         # This is used for testing the optimizer (e.g., DistribuedOptimizer)
         # It is useful for fp16 because the first run in fp16 with dynamic
         # loss scaler will have grad all being nan or inf, thus skipping updating.
-        if rewrite_main_grad:
+        if rewrite_main_grad is not None and rewrite_main_grad == "full":
             new_main_grad = neck.random.rand(full_cname, shard_slice)
             # here we do not respect the original range, to execerbate the bug.
             new_main_grad = new_main_grad.to(param.dtype).to(param.device)
             param.main_grad.data.copy_(new_main_grad.data)
-
+        elif rewrite_main_grad is not None and isinstance(rewrite_main_grad, (int, float)):
+            param.main_grad.data.mul_(rewrite_main_grad)  # scale the main grad
 
 
 def post_optim(
