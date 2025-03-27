@@ -1,0 +1,11 @@
+2025-03-23 23:26:59.910 | INFO     | neck.inspector.merger:_merge_distr_logs:64 - Merging logs from llama-tp2-fp8-hyb/activ
+2025-03-23 23:31:34.336 | INFO     | neck.inspector.merger:_merge_distr_logs:107 - Saved merged logs to llama-tp2-fp8-hyb/activ.pt
+2025-03-23 23:31:38.780 | INFO     | neck.inspector.merger:_merge_distr_logs:64 - Merging logs from llama-tp2-fp8-hyb/g_activ
+2025-03-23 23:35:47.541 | INFO     | neck.inspector.merger:_merge_distr_logs:107 - Saved merged logs to llama-tp2-fp8-hyb/g_activ.pt
+2025-03-23 23:35:52.207 | INFO     | neck.inspector.merger:_merge_distr_logs:64 - Merging logs from llama-tp2-fp8-hyb/g_param
+2025-03-23 23:36:15.797 | INFO     | neck.inspector.merger:_merge_distr_logs:107 - Saved merged logs to llama-tp2-fp8-hyb/g_param.pt
+2025-03-23 23:36:16.093 | INFO     | neck.inspector.merger:_merge_distr_logs:64 - Merging logs from llama-tp2-fp8-hyb/param
+2025-03-23 23:36:27.914 | INFO     | neck.inspector.merger:_merge_distr_logs:107 - Saved merged logs to llama-tp2-fp8-hyb/param.pt
+2025-03-23 23:36:28.048 | INFO     | neck.inspector.merger:_merge_distr_logs:64 - Merging logs from llama-tp2-fp8-hyb/g_param_main
+2025-03-23 23:36:38.688 | INFO     | neck.inspector.merger:_merge_distr_logs:107 - Saved merged logs to llama-tp2-fp8-hyb/g_param_main.pt
+2025-03-23 23:37:19.489 | DEBUG    | neck.logger.logger:_exit_hook:86 - [Developing mode]: Bye!

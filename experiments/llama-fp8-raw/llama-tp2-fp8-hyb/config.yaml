@@ -1,0 +1,40 @@
+logging:
+  enable_logging: true
+  type: disk
+  disk:
+    log_path: /home/ubuntu/nfs/neckruns
+    run_name: null
+annotations:
+  param: ./gpt-param.yaml
+  module: ./gpt-module-te.yaml
+architecture:
+  vocab_size: 50257
+  num_layers: 16
+  hidden_size: 2048
+  num_attention_heads: 32
+  seq_length: 4096
+  share_embeddings_and_output_weights: true
+  datatype: bf16
+parallel:
+  framework: Megatron-LM
+  num_microbatches: 4
+  sequence_parallel: false
+  use_distributed_optimizer: false
+  calculate_per_token_loss: false
+  rank:
+    world_rank: 0
+    dp_rank: 0
+    cp_rank: 0
+    tp_rank: 0
+    pp_rank: 0
+  size:
+    world_size: 2
+    dp_size: 1
+    cp_size: 1
+    tp_size: 2
+    pp_size: 1
+    vp_size: null
+  types:
+  - tp
+neck:
+  rewrite: false
