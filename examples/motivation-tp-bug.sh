@@ -4,7 +4,7 @@ export CUDA_DEVICE_MAX_CONNECTIONS=1
 export OMP_NUM_THREADS=1
 export NCCL_ALGO=tree
 export NVTE_BATCH_MHA_P2P_COMM=1
-export NECK_CONFIG_PATH=/home/ubuntu/repos/NECK/config/gpt.yaml
+export NECK_CONFIG_PATH=/workspace/repos/NECK/config/gpt.yaml
 export NECK_RUN_NAME=
 
 # NOTE: No need to enable NECK in this experiment!  Can recover the patches for neck.
@@ -103,5 +103,5 @@ IO_ARGS="
 "
 
 torchrun $DISTRIBUTED_ARGS \
-/home/ubuntu/repos/Megatron-LM/pretrain_gpt.py \
+/workspace/repos/Megatron-LM/pretrain_gpt.py \
 $PARALLEL_ARGS $ARCH_ARGS $PRECISION_ARGS $TRAINING_ARGS $IO_ARGS
