@@ -3,19 +3,18 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 17)
 project(cpp_ext LANGUAGES CXX CUDA)
 
-# Find Python interpreter and development files in the current environment
-find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
-# If Python3_EXECUTABLE is not set, manually check Conda and venv
-if(NOT Python3_EXECUTABLE)
-    if(DEFINED ENV{CONDA_PREFIX})
-        set(Python3_EXECUTABLE $ENV{CONDA_PREFIX}/bin/python)
-    elseif(DEFINED ENV{VIRTUAL_ENV})
-        set(Python3_EXECUTABLE $ENV{VIRTUAL_ENV}/bin/python)
-    else()
-        message(FATAL_ERROR "Python3 executable not found! Please activate a Python environment.")
-    endif()
+# Prioritize conda and venv
+if(DEFINED ENV{CONDA_PREFIX})
+    set(Python3_EXECUTABLE $ENV{CONDA_PREFIX}/bin/python)
+elseif(DEFINED ENV{VIRTUAL_ENV})
+    set(Python3_EXECUTABLE $ENV{VIRTUAL_ENV}/bin/python)
+else()
+    message(FATAL_ERROR "[NECK] Python3 executable not found! Please activate a Python environment.")
 endif()
-message(STATUS "Using Python interpreter: ${Python3_EXECUTABLE}")
+if(NOT Python3_EXECUTABLE)  # fall back to system python
+    find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
+endif()
+message(STATUS "[NECK] Using Python interpreter: ${Python3_EXECUTABLE}")
 
 # Use pybind11's cmake module to locate the installation path for pybind11
 execute_process(
@@ -39,16 +38,16 @@ execute_process(
 )
 
 find_package(Torch REQUIRED)
-message(STATUS "Found torch: version ${TORCH_VERSION}")
-message(STATUS "torch library: ${TORCH_LIBRARY}")
-message(STATUS "torch include: ${TORCH_INCLUDE_DIRS}")
+message(STATUS "[NECK] Found torch: version ${TORCH_VERSION}")
+message(STATUS "[NECK] torch library: ${TORCH_LIBRARY}")
+message(STATUS "[NECK] torch include: ${TORCH_INCLUDE_DIRS}")
 
 # CUDA settings
 enable_language(CUDA)
 find_package(CUDA REQUIRED)
-message(STATUS "CUDA Toolkit version: ${CUDA_VERSION}")
-message(STATUS "CUDA Libraries: ${CUDA_LIBRARIES}")
-message(STATUS "CUDA Include dirs: ${CUDA_INCLUDE_DIRS}")
+message(STATUS "[NECK] CUDA Toolkit version: ${CUDA_VERSION}")
+message(STATUS "[NECK] CUDA Libraries: ${CUDA_LIBRARIES}")
+message(STATUS "[NECK] CUDA Include dirs: ${CUDA_INCLUDE_DIRS}")
 set(CMAKE_CUDA_ARCHITECTURES 70 75 80 86 89 90)
 
 # Create the C++ Python module, linking necessary files
@@ -60,10 +59,10 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
     CUDA_STANDARD 17
 )
 if (CMAKE_SYSTEM_NAME MATCHES "Linux")
-    message(STATUS "Compiling on Linux")
+    message(STATUS "[NECK] Compiling on Linux")
     # Find libtorch_python.so for linux, but adding this for mac will cause symbol not found
     find_library(TORCH_PYTHON_LIBRARY torch_python PATHS "${TORCH_INSTALL_PREFIX}/lib")
-    message(STATUS "TORCH_PYTHON_LIBRARY: ${TORCH_PYTHON_LIBRARY}")
+    message(STATUS "[NECK] TORCH_PYTHON_LIBRARY: ${TORCH_PYTHON_LIBRARY}")
     target_link_libraries(${PROJECT_NAME} PRIVATE ${TORCH_PYTHON_LIBRARY})
     find_package(TBB REQUIRED)
     target_link_libraries(${PROJECT_NAME} PRIVATE TBB::tbb)

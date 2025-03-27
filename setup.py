@@ -1,5 +1,6 @@
 import os
 import sys
+import shutil
 import subprocess
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
@@ -28,8 +29,11 @@ class CMakeBuild(build_ext):
 
         build_temp = os.path.abspath(os.path.join(".", 'build'))
 
-        if not os.path.exists(build_temp):
-            os.makedirs(build_temp)
+        # Clean build directory if it exists
+        if os.path.exists(build_temp):
+            print(f"Removing old build directory: {build_temp}")
+            shutil.rmtree(build_temp)
+        os.makedirs(build_temp)
 
         # Configure and build the extension with CMake
         subprocess.check_call(
