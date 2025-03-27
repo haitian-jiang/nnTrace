@@ -37,11 +37,11 @@ def prior_optim(
         )
         log_tensor(full_cname, TType.g_param_main, tensor_info)
 
-        # rewrite the main_grad tensor
+        # rewrite the main_grad tensor, experimental
         # new_main_grad = neck.random.rand(full_cname, shard_slice)
         # new_main_grad = (new_main_grad - 0.5) / math.sqrt(shard_slice.full_shape[-1])  # kaiming uniform, but half the range
-        # new_main_grad = new_main_grad.to(param.dtype)
-        # param.main_grad.data = new_main_grad.data.to(param.device)
+        # new_main_grad = new_main_grad.to(param.dtype).to(param.device)
+        # param.main_grad.data.copy_(new_main_grad.data)
 
 
 
