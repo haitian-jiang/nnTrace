@@ -3,10 +3,7 @@ import torch
 import xxhash
 from typing import Optional
 from neck.structs import ShardNDSlices
-from .cpp_ext import (
-    seed_to_rand_parallel, 
-    rewrite_low_bits_bf16 as _rewrite_low_bits_bf16,
-)
+from .cpp_ext import seed_to_rand_parallel
 
 
 def _seed_to_seeds(seed: int, shard_slice: ShardNDSlices) -> torch.Tensor:

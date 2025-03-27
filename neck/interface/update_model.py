@@ -11,6 +11,8 @@ import neck.random
 def prior_optim(
     model: torch.nn.Module,
     vp_rank: Optional[int] = None,
+    log_main_grad: bool = True,
+    rewrite_main_grad: bool = False,
 ) -> None:
     """
     Log the main gradient of the model parameters before the optimizer step.
@@ -35,13 +37,21 @@ def prior_optim(
             shard_slice,
             is_grad=True,
         )
-        log_tensor(full_cname, TType.g_param_main, tensor_info)
+        
+        # NOTE: currently not support checking main_grad for ZeRO, so can turn
+        # off the logging for main_grad to avoid error
+        if log_main_grad:  
+            log_tensor(full_cname, TType.g_param_main, tensor_info)
 
-        # rewrite the main_grad tensor, experimental
-        # new_main_grad = neck.random.rand(full_cname, shard_slice)
-        # new_main_grad = (new_main_grad - 0.5) / math.sqrt(shard_slice.full_shape[-1])  # kaiming uniform, but half the range
-        # new_main_grad = new_main_grad.to(param.dtype).to(param.device)
-        # param.main_grad.data.copy_(new_main_grad.data)
+        # NOTE: rewrite the main_grad tensor
+        # This is used for testing the optimizer (e.g., DistribuedOptimizer)
+        # It is useful for fp16 because the first run in fp16 with dynamic
+        # loss scaler will have grad all being nan or inf, thus skipping updating.
+        if rewrite_main_grad:
+            new_main_grad = neck.random.rand(full_cname, shard_slice)
+            # here we do not respect the original range, to execerbate the bug.
+            new_main_grad = new_main_grad.to(param.dtype).to(param.device)
+            param.main_grad.data.copy_(new_main_grad.data)
 
 
 
