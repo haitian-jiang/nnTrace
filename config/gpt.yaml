@@ -8,6 +8,7 @@ logging:
 annotations:
   param: "./gpt-param.yaml"
   module: "./gpt-module-te.yaml"
+  # module: "./gpt-module.yaml"
 
 architecture:
   vocab_size: 50257

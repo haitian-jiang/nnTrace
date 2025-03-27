@@ -1,3 +1,4 @@
+set -e
 export PYTHONWARNINGS=ignore
 # export CUDA_VISIBLE_DEVICES=
 export CUDA_DEVICE_MAX_CONNECTIONS=1
@@ -6,21 +7,6 @@ export NCCL_ALGO=tree
 export NVTE_BATCH_MHA_P2P_COMM=1
 export NVTE_APPLY_QK_LAYER_SCALING=1
 export NECK_CONFIG_PATH=/home/ubuntu/efs/zhenyus/NECK/config/gpt.yaml
-export NECK_RUN_NAME=specimen
-
-DISTRIBUTED_ARGS="
-    --nproc_per_node 2 \
-    --nnodes 1 \
-    --node_rank 0 \
-    --master_addr localhost \
-    --master_port 6000 \
-"
-
-PARALLEL_ARGS="
-    --tensor-model-parallel-size 2 \
-    --pipeline-model-parallel-size 1 \
-    --context-parallel-size 1 \
-"
 
 ARCH_ARGS="
     --num-layers 16 \
@@ -68,6 +54,7 @@ TRAINING_ARGS="
     --no-gradient-accumulation-fusion \
     --transformer-impl transformer_engine \
 "
+# --transformer-impl local \
 
 IO_ARGS="
     --data-path /workspace/dataset/wikitext/wikitext_text_document \
@@ -78,10 +65,36 @@ IO_ARGS="
     --save-interval 10000 \
     --eval-interval 1000 \
     --eval-iters 0 \
-    --save /workspace/checkpoints \
-    --load /workspace/checkpoints
+    --save /workspace/checkpoints/null \
+    --load /workspace/checkpoints/null
 "
 
-torchrun $DISTRIBUTED_ARGS \
-/home/ubuntu/efs/zhenyus/Megatron-LM/pretrain_gpt.py \
-$PARALLEL_ARGS $ARCH_ARGS $PRECISION_ARGS $TRAINING_ARGS $IO_ARGS
+tp_cp_pairs=("1 2" "1 4" "1 8" "2 1" "4 1" "8 1" )
+
+for pair in "${tp_cp_pairs[@]}"; do
+    read TP CP <<< "$pair"
+
+    # Modify run name and checkpoint directory based on current configuration.
+    export NECK_RUN_NAME="tp${TP}_cp${CP}"
+    
+    DISTRIBUTED_ARGS="
+    --nproc_per_node $((TP * CP)) \
+    --nnodes 1 \
+    --node_rank 0 \
+    --master_addr localhost \
+    --master_port 6000 \
+    "
+
+    # Set parallel arguments.
+    PARALLEL_ARGS="
+        --tensor-model-parallel-size ${TP} \
+        --pipeline-model-parallel-size 1 \
+        --context-parallel-size ${CP} \
+    "
+
+    echo "Running with TP=${TP} and CP=${CP}"
+    
+    torchrun $DISTRIBUTED_ARGS \
+        /home/ubuntu/efs/zhenyus/Megatron-LM/pretrain_gpt.py \
+        $PARALLEL_ARGS $ARCH_ARGS $PRECISION_ARGS $TRAINING_ARGS $IO_ARGS
+done
