@@ -105,7 +105,7 @@ Step 1. Modify Megatron-LM
    ✔  kw_args['deallocate_pipeline_outputs'] = False
    ```
 
-2. Turn off `save_checkpointing`.
+2. Turn off `save_checkpoint`.
    
    Megatron-LM will save the trained parameters each time after training.
    It can be annoying for experiments and takes long time.
@@ -199,6 +199,7 @@ File to modify: `Megatron-LM/megatron/training/training.py`
         update_successful, grad_norm, num_zeros_in_grad = optimizer.step()
         timers('optimizer').stop()
 
+    --> neck.logger.update_iter_batch_cnt()
     --> for vp_rank, model_chunk in enumerate(model):
     -->     neck.post_optim(model_chunk, vp_rank)
         ...

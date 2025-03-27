@@ -4,7 +4,7 @@ from typing import Optional
 from .initialize_model import _check_vp_rank
 from neck.structs import get_annotation, TensorInfo, TType
 from neck.canonical import to_canonical_param_mod, infer_slice
-from neck.logger import log_tensor, update_iter_batch_cnt, get_param_full_cname
+from neck.logger import log_tensor, get_param_full_cname
 import neck.random
 
 
@@ -67,9 +67,8 @@ def post_optim(
     vp_rank = _check_vp_rank(model, vp_rank)
     assert isinstance(vp_rank, int), "vp_rank must be an integer"
 
-    # Reset the iter and batch counter for a new iteration
-    # NOTE: need to update the cnt first because will be reflected in the name
-    update_iter_batch_cnt()
+    # NOTE: update_iter_batch_cnt() must be called before post_optim() so that
+    # the iter and batch counter are correctly reflected in the parameter name
 
     for name, param in model.named_parameters():
         fw_canon_param_name = to_canonical_param_mod(name, vp_rank)
