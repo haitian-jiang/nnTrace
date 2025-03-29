@@ -114,12 +114,18 @@ class ModuleHookBase(ABC):
         )  # TODO: add info of whether from module with input rewritten.
 
 
-class FwdPreHook(ModuleHookBase):
+class FwdPreHook(ModuleHookBase, ABC):
     """
     Must be prepend to a module at last, because it need to log out the output
     of the last module, which must NOT been already rewritten.
     NOTE: only support tensors in `args`, no `kwargs`.  Could add if needed.
     """
+    @abstractmethod
+    def action(self, tensor: torch.Tensor, i: int) -> None:
+        """
+        Action to be taken on the tensor.
+        """
+        raise NotImplementedError
 
     def __call__(
         self, 
@@ -143,9 +149,7 @@ class FwdPreHook(ModuleHookBase):
                 activation = args[i]
                 assert isinstance(activation, torch.Tensor), \
                     "fwd_pre_log expects a tensor"
-                canon_act_name = self.get_canon_act_grad_name("input", i)
-                tensor_info = self.get_tensor_info(activation, canon_act_name)
-                log_tensor(canon_act_name, TType.activ, tensor_info)
+                self.action(activation, i)
         else:
             for i, activation in enumerate(args):
                 if not isinstance(activation, torch.Tensor):
