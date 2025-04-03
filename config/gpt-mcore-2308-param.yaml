@@ -1,0 +1,54 @@
+word_embeddings.weight:
+  tp_dim: 0
+
+position_embeddings.weight:
+  tp_dim: null
+
+input_layernorm.weight:
+  tp_dim: null
+
+input_layernorm.bias:
+  tp_dim: null
+
+self_attention.query_key_value.weight:
+  tp_dim: 0
+
+self_attention.query_key_value.bias:
+  tp_dim: 0
+
+self_attention.dense.weight:
+  tp_dim: 1
+
+self_attention.dense.bias:
+  tp_dim: null
+
+post_attention_layernorm.weight:
+  tp_dim: null
+
+post_attention_layernorm.bias:
+  tp_dim: null
+
+mlp.router.weight:
+  # (num_experts, hidden_size)
+  tp_dim: null
+
+mlp.router.bias:
+  tp_dim: null
+
+dense_h_to_4h.weight:  # no conversion, so only suffix
+  tp_dim: 0
+
+dense_h_to_4h.bias:
+  tp_dim: 0
+
+dense_4h_to_h.weight:
+  tp_dim: 1
+
+dense_4h_to_h.bias:
+  tp_dim: null
+
+final_layernorm.weight:
+  tp_dim: null
+
+final_layernorm.bias:
+  tp_dim: null

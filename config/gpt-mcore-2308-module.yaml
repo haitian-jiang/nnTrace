@@ -1,0 +1,81 @@
+word_embeddings:
+  input:
+    tp_dim: null
+  output:
+    tp_dim: null
+
+embedding:
+  output:  # [seq_len / tp_size, batch_size, hidden_size]
+    tp_dim: null
+    sp_dim: 0
+
+input_layernorm:  # [seq_len / tp_size, batch_size, hidden_size]
+  input:
+    tp_dim: null
+    sp_dim: 0
+  output:
+    tp_dim: null
+    sp_dim: 0
+  grad:
+    input: True
+    output: True
+
+self_attention.query_key_value:
+  input:
+    tp_dim: null
+    sp_dim: 0
+  output:    # [seq_len, batch_size, 3 * hidden_size / tp_size]
+    tp_dim: -1
+  grad:
+    input: True
+    output: True
+
+self_attention.core_attention:
+  output:  # [seq_len, batch_size, hidden_size / tp_size]
+    tp_dim: -1
+  grad:
+    output: True
+
+self_attention.dense:
+  output:  # [seq_len / tp_size, batch_size, hidden_size]
+    tp_dim: null
+    sp_dim: 0
+  grad:
+    output: True
+
+post_attention_layernorm:
+  input:
+    tp_dim: null
+    sp_dim: 0
+  output:
+    tp_dim: null
+    sp_dim: 0
+  grad:
+    input: True
+    output: True
+
+mlp.dense_h_to_4h:  # if record input, then input has sp dim 0
+  output: 
+    tp_dim: -1  # (seq_len, batch_size, hidden_size)
+  output_idx: 0  # 1 is output_bias
+  grad:
+    output: True
+
+mlp.dense_4h_to_h:
+  input:
+    tp_dim: -1
+  output:
+    tp_dim: null
+    sp_dim: 0
+  output_idx: 0  # 1 is output_bias
+  grad:
+    input: True
+    output: True
+
+layers.\d:
+  output:
+    tp_dim: null
+    sp_dim: 0
+  output_idx: 0
+  grad:
+    output: True

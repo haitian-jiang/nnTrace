@@ -4,7 +4,7 @@ export CUDA_DEVICE_MAX_CONNECTIONS=1
 export OMP_NUM_THREADS=1
 export NCCL_ALGO=tree
 export NVTE_BATCH_MHA_P2P_COMM=1
-export NECK_CONFIG_PATH=/workspace/repos/NECK/config/gpt.yaml
+export NECK_CONFIG_PATH=/workspace/repos/NECK/config/gpt-mcore-2308.yaml
 export NECK_RUN_NAME=vpp-zero-bug-distr
 
 DISTRIBUTED_ARGS="
@@ -42,7 +42,7 @@ PRECISION_ARGS="
 TRAINING_ARGS="
     --clip-grad 1.0 \
     --micro-batch-size 4 \
-    --global-batch-size 16 \
+    --global-batch-size 32 \
     --lr 1.0 \
     --min-lr 1.0 \
     --train-iters 1 \
@@ -51,7 +51,7 @@ TRAINING_ARGS="
     --lr-decay-style cosine \
     --weight-decay 1e-2 \
     --no-gradient-accumulation-fusion \
-    --transformer-impl transformer_engine \
+    --transformer-impl local \
 "
 
 IO_ARGS="

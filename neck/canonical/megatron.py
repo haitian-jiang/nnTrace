@@ -31,13 +31,19 @@ def get_megatron_lm_parallel_rank() -> OmegaConf:
     
     rank.world_rank = torch.distributed.get_rank()
     rank.dp_rank = parallel_state.get_data_parallel_rank()
-    rank.cp_rank = parallel_state.get_context_parallel_rank()
+    try:
+        rank.cp_rank = parallel_state.get_context_parallel_rank()
+    except:
+        rank.cp_rank = 0
     rank.tp_rank = parallel_state.get_tensor_model_parallel_rank()
     rank.pp_rank = parallel_state.get_pipeline_model_parallel_rank()
 
     size.world_size = torch.distributed.get_world_size()
     size.dp_size = parallel_state.get_data_parallel_world_size()
-    size.cp_size = parallel_state.get_context_parallel_world_size()
+    try:
+        size.cp_size = parallel_state.get_context_parallel_world_size()
+    except:
+        size.cp_size = 1
     size.tp_size = parallel_state.get_tensor_model_parallel_world_size()
     size.pp_size = parallel_state.get_pipeline_model_parallel_world_size()
     size.vp_size = parallel_state.get_virtual_pipeline_model_parallel_world_size()
