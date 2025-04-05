@@ -1,0 +1,47 @@
+word_embeddings.weight:
+  tp_dim: 0
+
+position_embeddings.weight:
+  tp_dim: null
+
+layernorm_qkv.layer_norm_weight:
+  tp_dim: null
+
+layernorm_qkv.layer_norm_bias:
+  tp_dim: null
+
+layernorm_qkv.weight:
+  tp_dim: 0
+
+layernorm_qkv.bias:
+  tp_dim: 0
+
+proj.weight:
+  tp_dim: 1
+
+proj.bias:
+  tp_dim: null
+
+layernorm_mlp.layer_norm_weight:
+  tp_dim: null
+
+layernorm_mlp.layer_norm_bias:
+  tp_dim: null
+
+layernorm_mlp.fc1_weight:
+  tp_dim: 0
+
+layernorm_mlp.fc1_bias:
+  tp_dim: 0
+
+layernorm_mlp.fc2_weight:
+  tp_dim: 1
+
+layernorm_mlp.fc2_bias:
+  tp_dim: null
+
+final_layernorm.weight:
+  tp_dim: null
+
+final_layernorm.bias:
+  tp_dim: null

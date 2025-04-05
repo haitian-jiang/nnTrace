@@ -1,0 +1,47 @@
+word_embeddings:
+  input:
+    tp_dim: null
+  output:
+    tp_dim: null
+
+embedding:
+  output:
+    tp_dim: null
+
+self_attention.layernorm_qkv:
+  input:
+    tp_dim: null
+  output:
+    tp_dim: -1
+  grad:
+    input: True
+    output: True
+
+self_attention.core_attention:
+  input:
+    tp_dim: -2  # not sure
+  output:
+    tp_dim: -1
+  input_idx: [0, 1, 2]
+  grad:
+    input: True
+    output: True
+
+self_attention.proj:
+  output:
+    tp_dim: null
+  output_idx: 0
+  grad:
+    output: True
+
+layernorm_mlp:
+  input:
+    tp_dim: null
+  output:
+    tp_dim: null
+  output_idx: 0
+
+layers.\d:
+  output:
+    tp_dim: null
+  output_idx: 0
