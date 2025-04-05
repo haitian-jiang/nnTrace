@@ -615,6 +615,7 @@ class ParamLogHook:
 
 
 __all__ = [
+    "iter_cnt",
     #--- hook classes ---#
     "FwdPreLogHook",
     "FwdPreRewriteHook",

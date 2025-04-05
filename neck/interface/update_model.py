@@ -61,7 +61,8 @@ def prior_optim(
 
 def post_optim(
     model: torch.nn.Module,
-    vp_rank: Optional[int] = None,    
+    vp_rank: Optional[int] = None,
+    rewrite_params: bool = False,
 ) -> None:
     """
     Reset the batch counter for a new iteration, and increase iter counter.
@@ -97,6 +98,13 @@ def post_optim(
         )
         log_tensor(full_cname, TType.param, tensor_info)
         # TODO: optionally rewrite the param.data with the consistent value
+        if rewrite_params:
+            iter_id = neck.logger.iter_cnt
+            new_param = neck.random.rand(full_cname, shard_slice, iter_id)
+            new_param = (2 * new_param - 1) / math.sqrt(shard_slice.full_shape[-1])
+            new_param = new_param.to(param.dtype).to(param.device)
+            param.data.copy_(new_param.data)
+
 
 
 __all__ = [

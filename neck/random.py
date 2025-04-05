@@ -28,6 +28,7 @@ def _seed_to_seeds(seed: int, shard_slice: ShardNDSlices) -> torch.Tensor:
 def rand(
     name: str, 
     shard_slice: ShardNDSlices,
+    seed_offset: int = 0,
     device="cpu",
     dtype: torch.dtype = torch.float32,
     backend: str = "pytorch",
@@ -42,7 +43,7 @@ def rand(
         backend (str): Backend for random tensor generation.  C++ is fast.
     """
 
-    seed = xxhash.xxh64(name).intdigest()
+    seed = xxhash.xxh64(name).intdigest() + seed_offset
     if backend == "pytorch":
         g = torch.Generator(device=device)
         g.manual_seed(seed)
