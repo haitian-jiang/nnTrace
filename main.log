@@ -1,0 +1,11 @@
+2025-04-06 14:16:33.194 | INFO     | neck.inspector.differential_test:get_err_raw:75 - Start calculating errors for activ!
+2025-04-06 14:16:33.258 | INFO     | neck.inspector.differential_test:_get_err_raw_and_store_result:95 - Finished storing error results for activ!
+2025-04-06 14:16:33.278 | INFO     | neck.inspector.differential_test:get_err_raw:75 - Start calculating errors for g_activ!
+2025-04-06 14:16:33.312 | INFO     | neck.inspector.differential_test:_get_err_raw_and_store_result:95 - Finished storing error results for g_activ!
+2025-04-06 14:16:33.592 | INFO     | neck.inspector.differential_test:get_err_raw:75 - Start calculating errors for g_param!
+2025-04-06 14:16:33.865 | INFO     | neck.inspector.differential_test:_get_err_raw_and_store_result:95 - Finished storing error results for g_param!
+2025-04-06 14:16:34.116 | INFO     | neck.inspector.differential_test:get_err_raw:75 - Start calculating errors for param!
+2025-04-06 14:16:34.424 | INFO     | neck.inspector.differential_test:_get_err_raw_and_store_result:95 - Finished storing error results for param!
+2025-04-06 14:16:34.702 | INFO     | neck.inspector.differential_test:get_err_raw:75 - Start calculating errors for g_param_main!
+2025-04-06 14:16:34.945 | INFO     | neck.inspector.differential_test:_get_err_raw_and_store_result:95 - Finished storing error results for g_param_main!
+2025-04-06 14:16:34.978 | DEBUG    | neck.logger.logger:_exit_hook:90 - [Developing mode]: Bye!
