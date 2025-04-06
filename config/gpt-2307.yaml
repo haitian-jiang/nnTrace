@@ -4,7 +4,7 @@ logging:
   enable_logging: True  # if false, logging annotations will be nop.
   type: "disk"  # disk, (redis)
   disk:
-    log_path: "/home/ubuntu/neckruns"
+    log_path: "/home/ubuntu/efs/zhenyus/neckruns"
     run_name: null
 
 annotations:
