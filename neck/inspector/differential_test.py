@@ -64,7 +64,7 @@ def get_err_raw(
         specimen = specimen_dict[name].tensor
         oracle = oracle_dict[name].tensor
         if specimen.shape != oracle.shape:
-            assert "word_embeddings" in name
+            assert "word_embeddings" in name or "output_layer" in name
             vocab = min(specimen.shape[0], oracle.shape[0])
             specimen = specimen[:vocab]
             oracle = oracle[:vocab]
