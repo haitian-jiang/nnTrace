@@ -21,6 +21,7 @@ word_embeddings:
     cp_dim: 1
   output:  # [batch_size, seq_len / cp_size, hidden_size]
     tp_dim: null
+    sp_dim: 0  # NOTE: in TE 2.1.0, [seq_len, batch_size, hidden_size]
     cp_dim: 1
 
 embedding:  # no need to rewrite its output
