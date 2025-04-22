@@ -1,0 +1,145 @@
+# module_name:
+#   turnoff: False
+#   fused: null or list of module_name
+#   input:  # tensor annotation
+#     tp_dim: null or int
+#   output:  # tensor annotation
+#     tp_dim: null or int
+#   rewrite_input: False
+#   rewrite_grad_output: False
+#   input_idx: null or list[int]
+#   output_idx: null  # null means only one output, so it will be a tensor.
+#   grad: null or 
+#     input: bool
+#     output: bool
+# TODO: add checking during constructing...?
+
+
+word_embeddings:
+  input:  # [batch_size, seq_len]  # could rewrite to ctrl data
+    tp_dim: null
+    cp_dim: 1
+  output:  # [batch_size, seq_len / cp_size, hidden_size]
+    tp_dim: null
+    sp_dim: 0  # NOTE: in TE 2.1.0, [seq_len, batch_size, hidden_size]
+    cp_dim: 1
+
+embedding:  # no need to rewrite its output
+  output:  # [seq_len / cp_size / tp_size, batch_size, hidden_size]
+    tp_dim: null
+    cp_dim: 0
+    sp_dim: 0
+
+# input_layernorm:  # such layernorms are Identity if uses Transformer Engine
+#   turnoff: True  # If it is Identity (like in TE), set turnoff to True
+#   input:
+#     tp_dim: null
+#     cp_dim: 0
+#     sp_dim: 0
+#   output:
+#     tp_dim: null
+#     cp_dim: 0
+#     sp_dim: 0
+#   grad:
+#     input: True
+#     output: True
+
+# self_attention.linear_qkv:
+#   fusion:  # NOTE: string replacement, use full name and share common prefix
+#     - input_layernorm
+#     - self_attention.linear_qkv
+#   input:  # same as embedding output even with SP, CP, could skip
+#     tp_dim: null
+#     cp_dim: 0
+#     sp_dim: 0
+#   output:  # could rewrite output
+#     tp_dim: -1
+#     cp_dim: 0
+#   rewrite_output: True
+#   rewrite_grad_output: True
+#   grad:
+#     input: True
+#     output: True
+
+# self_attention.core_attention:
+#   # reshape & split of linear_qkv output, no need to rewrite input
+#   input:  # Q, K, V, [seq, bs, n_head, d_head]
+#     tp_dim: -2  # share the same tp dim, can make it finer by having a list
+#     cp_dim: 0
+#   output:  # could rewrite output
+#     tp_dim: -1
+#     cp_dim: 0
+#   rewrite_output: True
+#   rewrite_grad_output: True # needn't rewrite grad_input, same as linear_qkv g_out
+#   input_idx: [0, 1, 2]  # Q, K, V, mask, and we don't want mask
+#   grad:
+#     input: True
+#     output: True
+
+# self_attention.linear_proj:
+#   output:  # could rewrite output
+#     tp_dim: null
+#     cp_dim: 0
+#     sp_dim: 0
+#   rewrite_output: True
+#   rewrite_grad_output: True
+#   output_idx: 0  # 1 is output_bias, directly copied from self.bias
+#   grad:
+#     output: True
+
+
+# pre_mlp_layernorm:
+#   turnoff: True
+#   input: 
+#     tp_dim: null
+#     cp_dim: 0
+#     sp_dim: 0
+#   output: 
+#     tp_dim: null
+#     cp_dim: 0
+#     sp_dim: 0
+#   grad:
+#     input: True
+#     output: True
+
+# mlp.linear_fc1:  # if record input, then input has sp dim 0
+#   # TODO: input should be recorded because layernorm being fused
+#   # no need to rewrite input bc attn output has been rewritten
+#   fusion:
+#     - pre_mlp_layernorm
+#     - mlp.linear_fc1
+#   output:  # could rewrite output
+#     tp_dim: -1  # (seq_len, batch_size, hidden_size)
+#     cp_dim: 0
+#   output_idx: 0  # 1 is output_bias
+#   rewrite_output: True
+#   rewrite_grad_output: True
+#   grad:
+#     output: True
+
+# mlp.linear_fc2:
+#   input:
+#     tp_dim: -1
+#     cp_dim: 0
+#   output:  # could rewrite output
+#     tp_dim: null
+#     cp_dim: 0
+#     sp_dim: 0
+#   output_idx: 0  # 1 is output_bias
+#   rewrite_output: True
+#   rewrite_grad_output: True  # need to add checking that grad.output is True
+#   grad:
+#     input: True
+#     output: True
+
+layers.\d:
+  # no need to rewrite, rewritten by mlp.linear_fc2, 
+  # also no need log its grad, as is the same as mlp.linear_fc2's grad_output
+  output:
+    tp_dim: null
+    cp_dim: 0
+    sp_dim: 0
+  output_idx: 0
+  grad:
+    output: True
+

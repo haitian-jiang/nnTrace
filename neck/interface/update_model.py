@@ -28,9 +28,12 @@ def prior_optim(
     for name, param in model.named_parameters():
         canon_param_name = to_canonical_param_mod(name, vp_rank)
         annotation = get_annotation(name, "param")
-        assert annotation is not None, \
-            f"Annotation not found for {name}"
-        shard_slice = infer_slice(param.shape, annotation)
+        # assert annotation is not None, \
+        #     f"Annotation not found for {name}"
+        if annotation is None:
+            shard_slice = neck.structs.ShardNDSlices(param.shape)
+        else:
+            shard_slice = infer_slice(param.shape, annotation)
         main_grad = param.main_grad.detach().cpu()  # for Megatron
         # full cname is iter+cname+t_type
         full_cname = get_param_full_cname(canon_param_name, TType.g_param_main)
