@@ -7,7 +7,7 @@ Step 1. Prepare conda environment
 conda create -n neck python=3.10
 conda activate neck
 pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
-pip install packaging regex psutil pyyaml nltk pybind11 einops
+pip install packaging regex psutil pyyaml nltk pybind11 einops six
 pip install setuptools==68.2.2 cmake==3.29.2 ninja==1.11.1.1
 ```
 
