@@ -614,6 +614,47 @@ class ParamLogHook:
         log_tensor(canonical_grad_name, TType.g_param, tensor_info)
 
 
+class PerturbationHook:
+    def __init__(
+        self,
+        scale: float = 0.25,
+        mch_eps: float = 2**-7,
+        tensor_id: Optional[str] = None,
+    ):
+        """
+        PerturbationHook to add random noise to tensors.
+        Args:
+            scale: Scale of the perturbation, default is 0.25.
+            mch_eps: Machine epsilon for the data type, default is mch(bf16).
+            tensor_id: Optional index for the tensor being perturbed.
+                       If None, then only one tensor in the module forward pass.
+                       Otherwise, has to provide the tensor id to distinguish.
+        """
+        self.perturbation = scale * mch_eps
+        self.tensor_id = tensor_id
+
+    def __call__(
+        self,
+        module: torch.nn.Module,
+        args: tuple,
+        output: torch.Tensor | tuple,
+    ) -> None:
+        """
+        Apply perturbation to the input tensors.
+        """
+        if self.tensor_id is None: 
+            assert isinstance(output, torch.Tensor), \
+                "Please provide the id of the tensor in the return value."
+            tensor = output
+        else:
+            assert isinstance(output, tuple), \
+                "PerturbationHook expects a tuple of tensors given id."
+            tensor = args[self.tensor_id]
+        assert isinstance(tensor, torch.Tensor), "PerturbationHook expects a tensor."
+        perturbed_tensor = tensor + self.perturbation * torch.randn_like(tensor)
+        tensor.data.copy_(perturbed_tensor.data)
+
+
 __all__ = [
     "iter_cnt",
     #--- hook classes ---#

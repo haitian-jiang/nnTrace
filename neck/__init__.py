@@ -3,6 +3,7 @@ from .config import CONFIG
 from .interface import (  # run time API
     reinit_model,
     register_model_hooks,
+    register_perturbation_hook,
     prior_optim,
     post_optim,
     parse_framework_config,
@@ -28,6 +29,7 @@ __all__ = [
     "CONFIG",
     "reinit_model",
     "register_model_hooks",
+    "register_perturbation_hook",
     "prior_optim",
     "post_optim",
     "parse_framework_config",

@@ -9,7 +9,7 @@ from neck.structs import (
     TensorInfo, 
     TensorAnnotation,
     ModuleAnnotation,
-    TType,
+    TType, DTYPE, MCH_EPS,
 )
 from neck.canonical import (
     get_parallel_states,
@@ -22,6 +22,7 @@ from neck.logger import (
     regist_batch_cnt_hook, 
     get_param_full_cname,
     ParamLogHook,
+    PerturbationHook,
 )
 
 
@@ -118,8 +119,6 @@ def reinit_model(
         )
 
 
-
-
 def filter_module_annotation(m_annotation: ModuleAnnotation) -> ModuleAnnotation:
     """
     Filter out the unnecessary fields parallel dim in the module annotation 
@@ -139,7 +138,6 @@ def filter_module_annotation(m_annotation: ModuleAnnotation) -> ModuleAnnotation
         if m_annotation.output:
             m_annotation.output.sp_dim = None
     return m_annotation
-
 
 
 def register_model_hooks(
@@ -162,6 +160,25 @@ def register_model_hooks(
 
     regist_batch_cnt_hook(model, vp_rank, True)  # prepend
     regist_batch_cnt_hook(model, vp_rank, False)  # prepend
+
+
+def register_perturbation_hook(
+    module: torch.nn.Module,
+    scale: float = 0.25,
+    dtype: str = "bf16",
+    tensor_id: Optional[str] = None,
+):
+    """
+    Register a hook to perturb the model input to estimate the FP error.
+
+    Args:
+        model: The model to register the hook on.
+        scale: The scale of the perturbation (times machine epsilon).
+    """
+    assert dtype in DTYPE, f"Unsupported dtype: {dtype}"
+    mch_eps = MCH_EPS[dtype]
+    perturb_hook = PerturbationHook(scale, mch_eps, tensor_id)
+    module.register_forward_hook(perturb_hook)
 
 
 __all__ = [

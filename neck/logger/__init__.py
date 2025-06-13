@@ -6,6 +6,7 @@ from .torch_hook import (
     update_iter_batch_cnt,
     get_param_full_cname,
     ParamLogHook,
+    PerturbationHook,
 )
 
 __all__ = [
@@ -16,4 +17,5 @@ __all__ = [
     "update_iter_batch_cnt",
     "get_param_full_cname",
     "ParamLogHook",
+    "PerturbationHook",
 ]
