@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.12)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 17)
-project(cpp_ext LANGUAGES CXX CUDA)
+project(cpp_ext LANGUAGES CXX)  # CUDA
 
 # Prioritize conda and venv
 if(DEFINED ENV{CONDA_PREFIX})
@@ -22,6 +22,7 @@ execute_process(
     OUTPUT_VARIABLE pybind11_DIR
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )
+set(PYBIND11_FINDPYTHON ON)
 find_package(pybind11 REQUIRED PATHS ${pybind11_DIR})
 
 # add torch into cmake path
@@ -43,21 +44,21 @@ message(STATUS "[NECK] torch library: ${TORCH_LIBRARY}")
 message(STATUS "[NECK] torch include: ${TORCH_INCLUDE_DIRS}")
 
 # CUDA settings
-enable_language(CUDA)
-find_package(CUDA REQUIRED)
-message(STATUS "[NECK] CUDA Toolkit version: ${CUDA_VERSION}")
-message(STATUS "[NECK] CUDA Libraries: ${CUDA_LIBRARIES}")
-message(STATUS "[NECK] CUDA Include dirs: ${CUDA_INCLUDE_DIRS}")
-set(CMAKE_CUDA_ARCHITECTURES 70 75 80 86 89 90)
+# enable_language(CUDA)
+# find_package(CUDA REQUIRED)
+# message(STATUS "[NECK] CUDA Toolkit version: ${CUDA_VERSION}")
+# message(STATUS "[NECK] CUDA Libraries: ${CUDA_LIBRARIES}")
+# message(STATUS "[NECK] CUDA Include dirs: ${CUDA_INCLUDE_DIRS}")
+# set(CMAKE_CUDA_ARCHITECTURES 70 75 80 86 89 90)
 
 # Create the C++ Python module, linking necessary files
 file(GLOB SRC_FILES src/*.cpp src/*.cu)
 pybind11_add_module(${PROJECT_NAME} ${SRC_FILES})
 
-set_target_properties(${PROJECT_NAME} PROPERTIES
-    CUDA_SEPARABLE_COMPILATION ON
-    CUDA_STANDARD 17
-)
+# set_target_properties(${PROJECT_NAME} PROPERTIES
+#     CUDA_SEPARABLE_COMPILATION ON
+#     CUDA_STANDARD 17
+# )
 if (CMAKE_SYSTEM_NAME MATCHES "Linux")
     message(STATUS "[NECK] Compiling on Linux")
     # Find libtorch_python.so for linux, but adding this for mac will cause symbol not found
@@ -68,11 +69,8 @@ if (CMAKE_SYSTEM_NAME MATCHES "Linux")
     target_link_libraries(${PROJECT_NAME} PRIVATE TBB::tbb)
 endif()
 
-# find_package(OpenMP REQUIRED)
-# target_link_libraries(${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX)
-
 # Link PyTorch to the module
-target_link_libraries(${PROJECT_NAME} PRIVATE ${TORCH_LIBRARIES} CUDA::cudart)
+# target_link_libraries(${PROJECT_NAME} PRIVATE ${TORCH_LIBRARIES} CUDA::cudart)
 target_include_directories(${PROJECT_NAME} PRIVATE 
     ${TORCH_INCLUDE_DIRS}
     ${CUDA_INCLUDE_DIRS}
