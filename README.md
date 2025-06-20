@@ -6,9 +6,11 @@ Step 1. Prepare conda environment
 ```bash
 conda create -n neck python=3.10
 conda activate neck
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+pip install torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1 --index-url https://download.pytorch.org/whl/cu124
+# for Megatron-LM
 pip install packaging regex psutil pyyaml nltk pybind11 einops six
-pip install setuptools==68.2.2 cmake==3.29.2 ninja==1.11.1.1
+# for building from source
+pip install setuptools>=68.2.2 cmake==3.29.2 ninja==1.11.1.1 wheel>=0.44
 ```
 
 Step 2. Install Megatron-LM and its supporting libraries
@@ -16,7 +18,7 @@ Step 2. Install Megatron-LM and its supporting libraries
 - [Transformer Engine](https://github.com/NVIDIA/TransformerEngine):
   ```bash
   pip install "transformer_engine[pytorch]==1.13.0"
-  # newest version on pip is 2.1.0, has bug on fp8
+  # current newest version on pypi is 2.1.0, but it has bugs with fp8
   
 
   # below are the commands for installing TE from source
@@ -34,9 +36,9 @@ Step 2. Install Megatron-LM and its supporting libraries
   git clone https://github.com/NVIDIA/apex
   cd apex
   # if pip >= 23.1 (ref: https://pip.pypa.io/en/stable/news/#v23-1) which supports   multiple `--config-settings` with the same key... 
-  pip install -v --disable-pip-version-check --no-cache-dir --no-build-isolation   --config-settings "--build-option=--cpp_ext" --config-settings   "--build-option=--cuda_ext" ./
+  pip install -v --disable-pip-version-check --no-cache-dir --no-build-isolation --config-settings "--build-option=--cpp_ext" --config-settings   "--build-option=--cuda_ext" ./
   # otherwise
-  pip install -v --disable-pip-version-check --no-cache-dir --no-build-isolation   --global-option="--cpp_ext" --global-option="--cuda_ext" ./
+  pip install -v --disable-pip-version-check --no-cache-dir --no-build-isolation --global-option="--cpp_ext" --global-option="--cuda_ext" ./
   ```
 
 - [Megatron-LM](https://github.com/NVIDIA/Megatron-LM)
@@ -45,7 +47,7 @@ Step 2. Install Megatron-LM and its supporting libraries
   ```
 
 
-## Install NECK
+## Install NECK from source
 
 The C++ extension has dependency on TBB on Linux.  Below is the way to
 install TBB locally in python env (if TBB is installed globally and
@@ -68,6 +70,10 @@ Current build process requires a conda environment with torch and pybind11.
 ```bash
 conda activate neck
 git clone git@github.com:haitian-jiang/NECK.git && cd NECK
+# make sure the necessary build tools are installed
+pip install setuptools>=68.2.2 cmake==3.29.2 ninja==1.11.1.1 wheel>=0.44
+# --no-build-isolation is important because the building procedure
+# needs to use the torch in the current environment.
 pip install --no-build-isolation -e .
 ```
 
@@ -77,13 +83,12 @@ If you only want to build the C++ extension, you can run:
 python setup.py build_ext --inplace
 ```
 
-Dependency:
-
+Dependency: loguru,  xxhash, omegaconf, numpy, and torch
 ```bash
-pip install loguru
-pip install xxhash
-pip install omegaconf
+# pip install torch==x.y.z --xxx
+pip install loguru xxhash omegaconf numpy
 ```
+
 
 ## Usage (Run time)
 

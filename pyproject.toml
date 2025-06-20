@@ -1,5 +1,11 @@
 [build-system]
-requires = ["setuptools>=68.2.2", "cmake>=3.29.2", "pybind11>=2.11.1"]
+requires = [
+    "setuptools>=68.2.2", 
+    "cmake>=3.29.2", 
+    "pybind11>=2.11.1",
+    "wheel>=0.44.0",
+    # "torch",
+]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -19,11 +25,8 @@ dependencies = [
     "torch",
 ]
 
-# This section is for optional dependencies, which can be installed
-# with something like `pip install .[dev]`
 [project.optional-dependencies]
 dev = ["tqdm"]
-
 
 # URLs for your project, like documentation or the source repository.
 [project.urls]
