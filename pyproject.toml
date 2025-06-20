@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68.2.2", "cmake>=3.29.2", "pybind11>=2.11.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "neck"
+version = "0.1.0"
+authors = [
+    { name="Haitian Jiang", email="haitian.jiang@nyu.edu" },
+]
+description = "Neural Networks Equivalence Checking"
+readme = "README.md" # It's good practice to have a README file.
+requires-python = ">=3.10"
+dependencies = [
+    "loguru",
+    "xxhash",
+    "omegaconf",
+    "numpy",
+    "torch",
+]
+
+# This section is for optional dependencies, which can be installed
+# with something like `pip install .[dev]`
+[project.optional-dependencies]
+dev = ["tqdm"]
+
+
+# URLs for your project, like documentation or the source repository.
+[project.urls]
+Homepage = "https://github.com/haitian-jiang/NECK"
+Repository = "https://github.com/haitian-jiang/NECK"

@@ -47,34 +47,6 @@ Step 2. Install Megatron-LM and its supporting libraries
 
 ## Install NECK
 
-Current build process requires a conda environment with torch and pybind11.
-
-```bash
-git clone git@github.com:haitian-jiang/NECK.git
-```
-
-
-Compile C++ extension: 
-
-```bash
-conda activate neck
-python setup.py build_ext --inplace
-```
-
-Installation:
-
-```bash
-pip install -e .
-```
-
-Dependency:
-
-```bash
-pip install loguru
-pip install xxhash
-pip install omegaconf
-```
-
 The C++ extension has dependency on TBB on Linux.  Below is the way to
 install TBB locally in python env (if TBB is installed globally and
 can be correctly linked, this part can be skipped).
@@ -89,6 +61,28 @@ pip install tbb
 find $(python -c "import sys; print(sys.prefix)") -name "libtbb.so.12"
 # update linker path
 export LD_LIBRARY_PATH=/path/to/env/lib:$LD_LIBRARY_PATH
+```
+
+Current build process requires a conda environment with torch and pybind11.
+
+```bash
+conda activate neck
+git clone git@github.com:haitian-jiang/NECK.git && cd NECK
+pip install --no-build-isolation -e .
+```
+
+If you only want to build the C++ extension, you can run:
+
+```
+python setup.py build_ext --inplace
+```
+
+Dependency:
+
+```bash
+pip install loguru
+pip install xxhash
+pip install omegaconf
 ```
 
 ## Usage (Run time)

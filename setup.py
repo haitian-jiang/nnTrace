@@ -1,5 +1,4 @@
 import os
-import sys
 import shutil
 import subprocess
 from setuptools import setup, Extension
@@ -11,6 +10,14 @@ class CMakeExtension(Extension):
 
 class CMakeBuild(build_ext):
     def run(self):
+        try:
+            subprocess.check_output(["cmake", "--version"])
+        except OSError:
+            raise RuntimeError(
+                "CMake must be installed to build the following extensions: " +
+                ", ".join(e.name for e in self.extensions)
+            )
+
         for ext in self.extensions:
             self.build_extension(ext)
 
@@ -36,19 +43,17 @@ class CMakeBuild(build_ext):
         os.makedirs(build_temp)
 
         # Configure and build the extension with CMake
+        print("-" * 10, f"Configuring CMake for {ext.name}", "-" * 10)
         subprocess.check_call(
             ["cmake", os.path.abspath(".")] + cmake_args, cwd=build_temp
         )
+
+        print("-" * 10, f"Building {ext.name} with CMake", "-" * 10)
         subprocess.check_call(
             ["cmake", "--build", "."] + build_args, cwd=build_temp
         )
 
 setup(
-    name="neck",
-    version="0.2.0",
-    author="Haitian Jiang",
-    author_email="haitian.jiang@nyu.edu",
-    description="Neural Networks Equivalence Checking",
     ext_modules=[CMakeExtension("cpp_ext")],
     cmdclass={"build_ext": CMakeBuild},
     packages=["neck"],
