@@ -1,44 +1,53 @@
 cmake_minimum_required(VERSION 3.12)
+cmake_policy(SET CMP0148 NEW)
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 17)
 project(cpp_ext LANGUAGES CXX)  # CUDA
 
+function(message_bold)
+    string(ASCII 27 ESCAPE_CHAR)
+    set(STYLE_BOLD "${ESCAPE_CHAR}[1m")
+    set(STYLE_NORMAL "${ESCAPE_CHAR}[0m")
+    string(CONCAT message_string ${ARGN})
+    message(STATUS "${STYLE_BOLD}${message_string}${STYLE_NORMAL}")
+endfunction()
+
 # Prioritize conda and venv
 if(DEFINED ENV{CONDA_PREFIX})
-    set(Python3_EXECUTABLE $ENV{CONDA_PREFIX}/bin/python)
+    set(Python_EXECUTABLE $ENV{CONDA_PREFIX}/bin/python)
 elseif(DEFINED ENV{VIRTUAL_ENV})
-    set(Python3_EXECUTABLE $ENV{VIRTUAL_ENV}/bin/python)
-else()
-    message(FATAL_ERROR "[NECK] Python3 executable not found! Please activate a Python environment.")
+    set(Python_EXECUTABLE $ENV{VIRTUAL_ENV}/bin/python)
 endif()
-if(NOT Python3_EXECUTABLE)  # fall back to system python
-    find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
-endif()
-message(STATUS "[NECK] Using Python interpreter: ${Python3_EXECUTABLE}")
+message_bold("[python] >> Searching for python...")
+find_package(Python REQUIRED COMPONENTS Interpreter Development)
 
 # Use pybind11's cmake module to locate the installation path for pybind11
 execute_process(
-    COMMAND ${Python3_EXECUTABLE} -m pybind11 --cmakedir
+    COMMAND ${Python_EXECUTABLE} -m pybind11 --cmakedir
     OUTPUT_VARIABLE pybind11_DIR
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )
-set(PYBIND11_FINDPYTHON ON)
+message_bold("[pybind11] >> Searching for pybind11...")
 find_package(pybind11 REQUIRED PATHS ${pybind11_DIR})
 
 # add torch into cmake path
 execute_process(
-    COMMAND ${Python3_EXECUTABLE} -c "import torch; import os; print(os.path.dirname(torch.__file__), end='')"
+    COMMAND ${Python_EXECUTABLE} -c "import torch; import os; print(os.path.dirname(torch.__file__), end='')"
     OUTPUT_VARIABLE TORCH_PATH
 )
 list(APPEND CMAKE_PREFIX_PATH ${TORCH_PATH})
 
 # show torch version
 execute_process(
-    COMMAND ${Python3_EXECUTABLE} -c "import torch; print(torch.__version__, end='')"
+    COMMAND ${Python_EXECUTABLE} -c "import torch; print(torch.__version__, end='')"
     OUTPUT_VARIABLE TORCH_VERSION
 )
 
+message_bold("[pytorch] >> Searching for pytorch...")
 find_package(Torch REQUIRED)
+
+message_bold("[NECK] >> Starting Compiling...")
 message(STATUS "[NECK] Found torch: version ${TORCH_VERSION}")
 message(STATUS "[NECK] torch library: ${TORCH_LIBRARY}")
 message(STATUS "[NECK] torch include: ${TORCH_INCLUDE_DIRS}")
