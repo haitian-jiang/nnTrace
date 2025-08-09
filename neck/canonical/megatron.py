@@ -262,6 +262,13 @@ def trim_word_embeddings_megatron(
     return info_dict
 
 
+def post_processing_before_save_megatron(LOGS) -> None:
+    world_size = get_megatron_lm_parallel_rank().size.world_size
+    if world_size == 1:
+        for info_dict in LOGS.values():
+            trim_word_embeddings_megatron(info_dict)
+        
+
 def _rescale_grad_for_pp_microbatch_hook(
     grad_info: TensorInfo, 
     t_type: TType,
