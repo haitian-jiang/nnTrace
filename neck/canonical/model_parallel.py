@@ -22,6 +22,8 @@ def to_canonical_param_mod(
     """
     if CONFIG.parallel.framework == "Megatron-LM":
         return to_canonical_param_mod_megatron(local_name, vp_rank)
+    elif CONFIG.parallel.framework == "vLLM":
+        return local_name  # TODO: single card for now.
     else:
         raise NotImplementedError(
             f"Parallel framework {CONFIG.parallel.framework} is not supported."
@@ -39,6 +41,8 @@ def infer_slice(
     """
     if CONFIG.parallel.framework == "Megatron-LM":
         return infer_slice_megatron(runtime_shape, annotation)
+    elif CONFIG.parallel.framework == "vLLM":
+        return ShardNDSlices(runtime_shape)  # TODO: single card for now.
     else:
         raise NotImplementedError(
             f"Parallel framework {CONFIG.parallel.framework} is not supported."
@@ -53,6 +57,8 @@ def trim_word_embeddings(
     """
     if CONFIG.parallel.framework == "Megatron-LM":
         return trim_word_embeddings_megatron(info_dict)
+    elif CONFIG.parallel.framework == "vLLM":
+        return info_dict  # No trimming vLLM.
     else:
         raise NotImplementedError(
             f"Parallel framework {CONFIG.parallel.framework} is not supported."

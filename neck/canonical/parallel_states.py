@@ -2,6 +2,7 @@ import torch
 from omegaconf import OmegaConf
 from neck import CONFIG
 from .megatron import get_megatron_lm_parallel_rank, get_megatron_parallel_options
+from .vllm import get_vllm_parallel_rank, get_vllm_parallel_options
 
 
 GOT_PARALLEL_STATES = False
@@ -28,13 +29,16 @@ def get_parallel_states() -> OmegaConf:
     if CONFIG.parallel.framework == "Megatron-LM":
         results = get_megatron_lm_parallel_rank()
         get_megatron_parallel_options()
-        global GOT_PARALLEL_STATES
-        GOT_PARALLEL_STATES = True
-        return results
+    elif CONFIG.parallel.framework == "vLLM":
+        results = get_vllm_parallel_rank()
+        get_vllm_parallel_options()
     else:
         raise NotImplementedError(
             f"Parallel framework {CONFIG.parallel.framework} is not supported."
         )
+    global GOT_PARALLEL_STATES
+    GOT_PARALLEL_STATES = True
+    return results
 
 
 __all__ = [

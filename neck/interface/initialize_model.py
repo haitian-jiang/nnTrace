@@ -143,9 +143,18 @@ def filter_module_annotation(m_annotation: ModuleAnnotation) -> ModuleAnnotation
 def register_model_hooks(
     model: torch.nn.Module,
     vp_rank: Optional[int] = None,
+    forward_only: bool = False,
+    model_for_batch_cnt: Optional[torch.nn.Module] = None,
 ):
     """
     Register hooks to log activations / grads during forward / backward pass.
+    Args:
+        model: The model to register the hooks on.
+        vp_rank: The virtual pipeline parallelism rank of the model.
+        forward_only: If True, only register forward hooks (inference mode).
+        model_for_batch_cnt: The model to register the batch count hook on.
+            If None, use `model` itself.  In vLLM, the LlamaModel is decorated
+            and will bypass all hooks, so we can register on LlamaForCausalLM.
     """
     vp_rank = _check_vp_rank(model, vp_rank)
     assert isinstance(vp_rank, int), "vp_rank must be an integer"
@@ -158,8 +167,11 @@ def register_model_hooks(
         canon_mod_name = to_canonical_param_mod(m_name, vp_rank)
         register_hook(module, canon_mod_name, m_annotation, vp_rank)
 
-    regist_batch_cnt_hook(model, vp_rank, True)  # prepend
-    regist_batch_cnt_hook(model, vp_rank, False)  # prepend
+    if model_for_batch_cnt is None:
+        model_for_batch_cnt = model
+    regist_batch_cnt_hook(model_for_batch_cnt, vp_rank, True)  # prepend
+    if not forward_only:
+        regist_batch_cnt_hook(model_for_batch_cnt, vp_rank, False)  # prepend
 
 
 def register_perturbation_hook(

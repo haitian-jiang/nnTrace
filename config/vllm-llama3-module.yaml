@@ -1,0 +1,12 @@
+self_attn:  # attention output before adding residual
+  output:
+    tp_dim: null  # TODO
+
+mlp:  # mlp output before adding residual
+  output:
+    tp_dim: null  # TODO
+
+self_attn.attn:
+  input:
+    tp_dim: null  # TODO
+  input_idx: [0, 1, 2]  # q, k, v

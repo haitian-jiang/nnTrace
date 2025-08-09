@@ -76,6 +76,9 @@ def post_processing_before_save(LOGS):
     if CONFIG.parallel.framework == "Megatron-LM":
         from neck.canonical.megatron import post_processing_before_save_megatron
         post_processing_before_save_megatron(LOGS)
+    elif CONFIG.parallel.framework == "vLLM":
+        from neck.canonical.vllm import post_processing_before_save_vllm
+        post_processing_before_save_vllm(LOGS)
     else:
         raise NotImplementedError(
             f"Parallel framework {CONFIG.parallel.framework} is not supported."
