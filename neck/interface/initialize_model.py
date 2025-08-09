@@ -184,4 +184,5 @@ def register_perturbation_hook(
 __all__ = [
     "reinit_model",
     "register_model_hooks",
+    "register_perturbation_hook",
 ]

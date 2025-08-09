@@ -1,7 +1,7 @@
 from neck import CONFIG as NECK_CONFIG
 
 
-def parse_framework_config(args) -> None:
+def parse_megatron_config(args) -> None:
     if getattr(args, "sequence_parallel", None) is not None:
         # overwrite the value in neck's config yaml if available from megatron
         NECK_CONFIG.parallel.sequence_parallel = args.sequence_parallel
@@ -30,5 +30,13 @@ def parse_framework_config(args) -> None:
     except ImportError:
         pass
 
+
+def parse_framework_config(args) -> None:
+    if NECK_CONFIG.parallel.framework == "Megatron-LM":
+        parse_megatron_config(args)
+    else:
+        raise NotImplementedError(
+            f"Parallel framework {NECK_CONFIG.parallel.framework} is not supported."
+        )
 
 __all__ = ["parse_framework_config"]

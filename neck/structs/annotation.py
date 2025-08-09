@@ -86,9 +86,11 @@ class ModuleAnnotation:
         return annotation
 
 
-def load_annotations(a_type: str) -> OmegaConf:
+def load_annotations(a_type: str) -> OmegaConf | None:
     assert a_type in CONFIG.annotations, f"Annotation type {a_type} is not supported."
     annotation_file = CONFIG.annotations[a_type]
+    if annotation_file is None:
+        return None
     if not Path(annotation_file).is_absolute():
         annotation_file = _config_folder / annotation_file
     with open(annotation_file) as f:
@@ -97,9 +99,15 @@ def load_annotations(a_type: str) -> OmegaConf:
 
 
 
-def _parse_param_annotation() -> dict[str, TensorAnnotation]:
+def _parse_param_annotation() -> dict[str, TensorAnnotation] | None:
+    """
+    None means no annotation file is provided. 
+    Param annotations are not needed for inference, so it can be None.
+    """
     param_annotations = {}
     raw_annotations = load_annotations("param")
+    if raw_annotations is None:
+        return None
     for suffix, raw_annotation in raw_annotations.items():
         annotation = TensorAnnotation.from_dict(raw_annotation)
         annotation.suffix = suffix
