@@ -98,7 +98,6 @@ def load_annotations(a_type: str) -> OmegaConf | None:
     return annotations
 
 
-
 def _parse_param_annotation() -> dict[str, TensorAnnotation] | None:
     """
     None means no annotation file is provided. 
@@ -129,6 +128,19 @@ param_annotations = _parse_param_annotation()
 module_annotations = _parse_module_annotation()
 
 
+def to_general_name(local_name: str) -> str:
+    """
+    Convert a local name to a general name by replacing digits with \d.
+    e.g., module.module.decoder.layers.\d.self_attention
+    """
+    name_decomp = local_name.split(".")
+    for i, part in enumerate(name_decomp):
+        if part.isdigit():
+            name_decomp[i] = r"\d"
+            break
+    return ".".join(name_decomp)
+
+
 def get_annotation(
     local_name: str,
     type: Literal["param", "module"],
@@ -149,13 +161,8 @@ def get_annotation(
         annotations = module_annotations
     else:
         raise ValueError(f"Annotation type {type} is not supported.")
-    
-    name_decomp = local_name.split(".")
-    for i, part in enumerate(name_decomp):
-        if part.isdigit():
-            name_decomp[i] = r"\d"
-            break
-    general_name = ".".join(name_decomp)  # module.module.decoder.layers.\d.self_attention
+
+    general_name = to_general_name(local_name)
     for suffix in annotations:
         if general_name.endswith(suffix):
             return annotations[suffix]
@@ -166,6 +173,7 @@ __all__ = [
     "TensorAnnotation",
     "ModuleAnnotation",
     "param_annotations",
-    "module_annotations"
-    "get_annotation"
+    "module_annotations",
+    "to_general_name",
+    "get_annotation",
 ]
