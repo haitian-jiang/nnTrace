@@ -5,6 +5,7 @@ from .annotation import (
     ModuleAnnotation, 
     param_annotations, 
     module_annotations,
+    to_general_name,
     get_annotation,
 )
 from .const import DTYPE, MCH_EPS
@@ -21,6 +22,7 @@ __all__ = [
     "ModuleAnnotation",
     "param_annotations",
     "module_annotations",
+    "to_general_name",
     "get_annotation",
     "DTYPE",
     "MCH_EPS",
