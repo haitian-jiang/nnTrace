@@ -1,4 +1,6 @@
-# nnTrace: some awesome title
+# TTrace: Lightweight Error Checking and Diagnosis for Distributed Training
+
+📄 **You can check our paper on [arxiv](https://www.arxiv.org/abs/2506.09280)!**
 
 ## Preparation
 
@@ -47,7 +49,7 @@ Step 2. Install Megatron-LM and its supporting libraries
   ```
 
 
-## Install NECK from source
+## Install TTrace from source
 
 The C++ extension has dependency on TBB on Linux.  Below is the way to
 install TBB locally in python env (if TBB is installed globally and
