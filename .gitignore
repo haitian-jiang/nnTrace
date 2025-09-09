@@ -55,5 +55,5 @@ ipython_config.py
 # IDE
 .DS_Store
 .idea/
-.vscode/c_cpp_properties.json
+.vscode/
 .cache/
