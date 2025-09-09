@@ -47,7 +47,7 @@ class TensorAnnotation:
 
 @dataclass
 class ModuleAnnotation:
-    """Annotation for modules, containing tensor annotation for input / output.
+    r"""Annotation for modules, containing tensor annotation for input / output.
 
     Attributes:
         suffix: The trailing part of the module name.  For example, the suffix
@@ -87,6 +87,7 @@ class ModuleAnnotation:
 
 
 def load_annotations(a_type: str) -> OmegaConf | None:
+    assert CONFIG is not None, "Please set NECK_CONFIG_PATH"
     assert a_type in CONFIG.annotations, f"Annotation type {a_type} is not supported."
     annotation_file = CONFIG.annotations[a_type]
     if annotation_file is None:
@@ -129,7 +130,7 @@ module_annotations = _parse_module_annotation()
 
 
 def to_general_name(local_name: str) -> str:
-    """
+    r"""
     Convert a local name to a general name by replacing digits with \d.
     e.g., module.module.decoder.layers.\d.self_attention
     """

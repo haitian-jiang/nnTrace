@@ -1,4 +1,4 @@
-from typing import Sequence, Optional, Union, Iterable
+from typing import Sequence, Optional, Union, Iterable, Generator
 import torch
 import numpy as np
 
@@ -49,6 +49,9 @@ class NDSlice(tuple):
                 nd_slice = tuple(NeckSlice(0, dim) for dim in args[0])
             elif isinstance(args[0], Iterable):  # Iterable[NeckSlice]
                 nd_slice = tuple(args[0])
+                # must assign before assertion, args[0] can be generator!
+                assert all(isinstance(s, NeckSlice) for s in nd_slice), \
+                    "Expect NeckSlice or torch.Size or Iterable[NeckSlice]."
             else:
                 raise ValueError(f"Wrong input {args}")
         else:  # args is tuple[NeckSlice] already
