@@ -14,7 +14,7 @@ LOG_HOOKS: list[ Callable[[TensorInfo, str],TensorInfo] ] = []
 if CONFIG.parallel.framework == "Megatron-LM":
     from neck.canonical.megatron import log_hook_megatron
     LOG_HOOKS.extend(log_hook_megatron)
-elif CONFIG.parallel.framework == "vLLM":
+elif CONFIG.parallel.framework in ["vLLM", "transformers"]:
     pass
 else:
     raise NotImplementedError(

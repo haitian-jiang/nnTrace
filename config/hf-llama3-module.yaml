@@ -1,0 +1,19 @@
+self_attn:  # attention output before adding residual
+  output:
+    tp_dim: null
+
+mlp:  # mlp output before adding residual
+  output:
+    tp_dim: null
+
+self_attn.q_proj:  # log after reshape
+  output:  # [bs, seq, n_head, head_dim]
+    tp_dim: -2
+
+self_attn.k_proj:
+  output:
+    tp_dim: -2
+
+self_attn.v_proj:
+  output:
+    tp_dim: -2

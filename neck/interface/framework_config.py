@@ -1,7 +1,8 @@
 import torch
 from neck import CONFIG as NECK_CONFIG
 from typing import TYPE_CHECKING
-from vllm.config import VllmConfig, ModelConfig, ParallelConfig
+if TYPE_CHECKING:
+    from vllm.config import VllmConfig, ModelConfig, ParallelConfig
 
 
 def parse_megatron_config(args) -> None:
@@ -34,7 +35,7 @@ def parse_megatron_config(args) -> None:
         pass
 
 
-def parse_vllm_config(vllm_config: VllmConfig) -> None:
+def parse_vllm_config(vllm_config: "VllmConfig") -> None:
     hf_config = vllm_config.model_config.hf_config
     NECK_CONFIG.vocab_size = hf_config.vocab_size
     NECK_CONFIG.num_layers = hf_config.num_hidden_layers
@@ -61,6 +62,24 @@ def parse_vllm_config(vllm_config: VllmConfig) -> None:
         )
 
 
+def parse_transformers_config(hf_config) -> None:
+    NECK_CONFIG.vocab_size = hf_config.vocab_size
+    NECK_CONFIG.num_layers = hf_config.num_hidden_layers
+    NECK_CONFIG.hidden_size = hf_config.hidden_size
+    NECK_CONFIG.num_attention_heads = hf_config.num_attention_heads
+    NECK_CONFIG.num_key_value_heads = hf_config.num_key_value_heads
+    hf_dtype_map = {
+        "half": "fp16",
+        "float16": "fp16",
+        "bfloat16": "bf16",
+        "float": "fp32",
+        "float32": "fp32",
+    }
+    NECK_CONFIG.architecture.datatype = hf_dtype_map.get(
+        hf_config.torch_dtype, "bf16"
+    )
+
+
 def parse_framework_config(args) -> None:
     if NECK_CONFIG.parallel.framework == "Megatron-LM":
         parse_megatron_config(args)
@@ -68,6 +87,8 @@ def parse_framework_config(args) -> None:
         assert isinstance(args, VllmConfig), \
             "Expected args to be an instance of VllmConfig"
         parse_vllm_config(args)
+    elif NECK_CONFIG.parallel.framework == "transformers":
+        parse_transformers_config(args)
     else:
         raise NotImplementedError(
             f"Parallel framework {NECK_CONFIG.parallel.framework} is not supported."

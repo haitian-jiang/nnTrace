@@ -79,6 +79,9 @@ def post_processing_before_save(LOGS):
     elif CONFIG.parallel.framework == "vLLM":
         from neck.canonical.vllm import post_processing_before_save_vllm
         post_processing_before_save_vllm(LOGS)
+    elif CONFIG.parallel.framework == "transformers":
+        from neck.canonical.transformers import post_processing_before_save_transformers
+        post_processing_before_save_transformers(LOGS)
     else:
         raise NotImplementedError(
             f"Parallel framework {CONFIG.parallel.framework} is not supported."
@@ -121,7 +124,7 @@ def save_all_logs_before_exit():
     atexit.unregister(_exit_hook)
 
 
-if CONFIG.logging.enable_logging:
+if CONFIG.logging.enable_logging and CONFIG.logging.save_logs_atexit:
     atexit.register(_exit_hook)
 
 
