@@ -1,4 +1,5 @@
 import torch
+from torch.distributed.tensor import DTensor
 from typing import Optional
 from neck import CONFIG
 from neck.structs import TensorAnnotation, ShardNDSlices, TensorInfo
@@ -33,7 +34,7 @@ def to_canonical_param_mod(
 
 
 def infer_slice(
-    runtime_shape: torch.Size,
+    local_tensor: torch.Tensor | DTensor,
     annotation: Optional[TensorAnnotation] = None,
 ) -> ShardNDSlices:
     """
@@ -42,12 +43,12 @@ def infer_slice(
     is the full shape and the slice.
     """
     if CONFIG.parallel.framework == "Megatron-LM":
-        return infer_slice_megatron(runtime_shape, annotation)
+        return infer_slice_megatron(local_tensor.shape, annotation)
     elif CONFIG.parallel.framework == "vLLM":
-        return ShardNDSlices(runtime_shape)  # TODO: single card for now.
+        return ShardNDSlices(local_tensor.shape)  # TODO: single card for now.
     elif CONFIG.parallel.framework == "transformers":
         from .transformers import infer_slice_transformers
-        return infer_slice_transformers(runtime_shape, annotation)
+        return infer_slice_transformers(local_tensor.shape, annotation)
     else:
         raise NotImplementedError(
             f"Parallel framework {CONFIG.parallel.framework} is not supported."

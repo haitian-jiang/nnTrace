@@ -84,7 +84,7 @@ def reinit_model(
         else:  
             canon_param_name = fw_canon_param_name
             fw_canon_param_name = None  # work as arg for ParamLogHook
-        shard_slice = infer_slice(param.shape, annotation)
+        shard_slice = infer_slice(param, annotation)
 
         # "iter.0|module.module.decoder.layers.0.xxx|param"        
         full_cname = get_param_full_cname(canon_param_name, TType.param)

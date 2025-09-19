@@ -33,7 +33,7 @@ def prior_optim(
         if annotation is None:
             shard_slice = neck.structs.ShardNDSlices(param.shape)
         else:
-            shard_slice = infer_slice(param.shape, annotation)
+            shard_slice = infer_slice(param, annotation)
         main_grad = param.main_grad.detach().cpu()  # for Megatron
         # full cname is iter+cname+t_type
         full_cname = get_param_full_cname(canon_param_name, TType.g_param_main)
@@ -91,7 +91,7 @@ def post_optim(
         else:  
             canon_param_name = fw_canon_param_name
             fw_canon_param_name = None  # work as arg for ParamLogHook
-        shard_slice = infer_slice(param.shape, annotation)
+        shard_slice = infer_slice(param, annotation)
         param_data = param.data.detach().cpu()
         full_cname = get_param_full_cname(canon_param_name, TType.param)
         tensor_info = TensorInfo(

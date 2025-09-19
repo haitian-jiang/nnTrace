@@ -1,4 +1,5 @@
 import torch
+from torch.distributed.tensor import DTensor
 from collections import defaultdict
 from typing import Literal, Optional
 from abc import ABC, abstractmethod
@@ -98,11 +99,11 @@ class ModuleHookBase(ABC):
 
     def get_tensor_info(
         self, 
-        activ: torch.Tensor,
+        activ: torch.Tensor | DTensor,
         canonical_name: str,
         is_grad: bool = False,
     ) -> TensorInfo:
-        shape_slice = canonical.infer_slice(activ.shape, self.t_annotation)
+        shape_slice = canonical.infer_slice(activ, self.t_annotation)
         # NOTE: no double checking of shape and slice here, 
         # could add if exists in annotation.
         return TensorInfo(
@@ -184,7 +185,7 @@ class FwdPreRewriteHook(FwdPreHook):
     def action(self, tensor: torch.Tensor, i: int) -> None:
         assert isinstance(tensor, torch.Tensor), "fwd_pre_rewrite expects a tensor"
         canon_act_name = self.get_canon_act_grad_name("input", i)
-        shard_slice = canonical.infer_slice(tensor.shape, self.t_annotation)
+        shard_slice = canonical.infer_slice(tensor, self.t_annotation)
         new_activation = neck.random.rand(
             canon_act_name, 
             shard_slice,
@@ -203,7 +204,7 @@ class FwdPreBitRewriteHook(FwdPreHook):
     def action(self, tensor: torch.Tensor, i: int) -> None:
         assert isinstance(tensor, torch.Tensor), "fwd_pre_rewrite expects a tensor"
         canon_act_name = self.get_canon_act_grad_name("input", i)
-        shard_slice = canonical.infer_slice(tensor.shape, self.t_annotation)
+        shard_slice = canonical.infer_slice(tensor, self.t_annotation)
         # clog.debug(f"Rewriting {canon_act_name} with {self.nbits} bits")
         neck.random.rewrite_low_bits(canon_act_name, shard_slice, 
                                      tensor, self.nbits)
@@ -249,7 +250,7 @@ class FwdPostRewriteHook(FwdPostHook):
     def action(self, tensor: torch.Tensor, idx: int = 0) -> None:
         assert isinstance(tensor, torch.Tensor), "fwd_post_rewrite expects a tensor"
         canon_act_name = self.get_canon_act_grad_name("output", idx)
-        shard_slice = canonical.infer_slice(tensor.shape, self.t_annotation)
+        shard_slice = canonical.infer_slice(tensor, self.t_annotation)
         new_activation = neck.random.rand(
             canon_act_name, 
             shard_slice,
@@ -268,7 +269,7 @@ class FwdPostBitRewriteHook(FwdPostHook):
     def action(self, tensor: torch.Tensor, idx: int = 0) -> None:
         assert isinstance(tensor, torch.Tensor), "fwd_post_rewrite expects a tensor"
         canon_act_name = self.get_canon_act_grad_name("output", idx)
-        shard_slice = canonical.infer_slice(tensor.shape, self.t_annotation)
+        shard_slice = canonical.infer_slice(tensor, self.t_annotation)
         # clog.debug(f"Rewriting {canon_act_name} with {self.nbits} bits")
         neck.random.rewrite_low_bits(canon_act_name, shard_slice,
                                      tensor, self.nbits)
@@ -320,7 +321,7 @@ class BwdPreRewriteHook(BwdPreHook):
         assert isinstance(grad, torch.Tensor), \
             f"bwd pre hook get non tensor: {type(grad)}"
         canon_grad_name = self.get_canon_act_grad_name("output", idx, True)
-        shard_slice = canonical.infer_slice(grad.shape, self.t_annotation)
+        shard_slice = canonical.infer_slice(grad, self.t_annotation)
         new_grad = neck.random.rand(
             canon_grad_name, 
             shard_slice,
@@ -340,7 +341,7 @@ class BwdPreBitRewriteHook(BwdPreHook):
         assert isinstance(grad, torch.Tensor), \
             f"bwd pre hook get non tensor: {type(grad)}"
         canon_grad_name = self.get_canon_act_grad_name("output", idx, True)
-        shard_slice = canonical.infer_slice(grad.shape, self.t_annotation)
+        shard_slice = canonical.infer_slice(grad, self.t_annotation)
         # clog.debug(f"Rewriting {canon_grad_name} with {self.nbits} bits")
         neck.random.rewrite_low_bits(canon_grad_name, shard_slice,
                                      grad, self.nbits)
