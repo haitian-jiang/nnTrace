@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.27)
 cmake_policy(SET CMP0148 NEW)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -6,12 +6,19 @@ set(CMAKE_CXX_STANDARD 17)
 project(cpp_ext LANGUAGES CXX)  # CUDA
 
 function(message_bold)
-    string(ASCII 27 ESCAPE_CHAR)
-    set(STYLE_BOLD "${ESCAPE_CHAR}[1m")
-    set(STYLE_NORMAL "${ESCAPE_CHAR}[0m")
+    set(STYLE_BOLD "")
+    set(STYLE_NORMAL "")
+
+    if(DEFINED ENV{TERM} AND NOT "$ENV{TERM}" STREQUAL "dumb")
+        string(ASCII 27 ESC)
+        set(STYLE_BOLD "${ESC}[1m")
+        set(STYLE_NORMAL "${ESC}[0m")
+    endif()
+
     string(CONCAT message_string ${ARGN})
     message(STATUS "${STYLE_BOLD}${message_string}${STYLE_NORMAL}")
 endfunction()
+
 
 # Prioritize conda and venv
 if(DEFINED ENV{CONDA_PREFIX})

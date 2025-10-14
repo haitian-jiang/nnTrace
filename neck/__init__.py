@@ -1,5 +1,6 @@
 # Import individuals then import modules, otherwise circular import error.
 from .config import CONFIG
+from . import utils
 from .interface import (  # run time API
     reinit_model,
     register_model_hooks,
@@ -36,6 +37,7 @@ __all__ = [
     "merge_distr_logs",
     "conduct_differential_test",
     "get_annotation",
+    "utils",
     "structs",
     "config",
     "interface",

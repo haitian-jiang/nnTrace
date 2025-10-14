@@ -1,0 +1,32 @@
+logging:
+  enable_logging: True  # if false, logging annotations will be nop.
+  save_logs_atexit: True
+  type: "disk"  # disk, (redis)
+  disk:
+    log_path: "/opt/dlami/nvme/neckruns"
+    run_name: dp-fix
+
+annotations:
+  param: "./titan-llama3-param.yaml"
+  module: "./titan-llama3-module.yaml"
+
+architecture:
+  # --- below will be replaced by vLLM's config at run time --- #
+  vocab_size: 50257
+  num_layers: 24
+  hidden_size: 1024
+  num_attention_heads: 16
+  seq_length: 1024
+  share_embeddings_and_output_weights: True
+  # datatype: "bf16"
+
+parallel:
+  framework: "TorchTitan"
+  num_microbatches: 1  # for megatron, because cannot get it from runtime in old version
+  # --- below will be replaced by megatron's args at run time --- #
+  sequence_parallel: False
+  use_distributed_optimizer: False
+  calculate_per_token_loss: False
+
+neck:
+  rewrite: "full"  # "full" or an int > 0 representing how many LSD bits to rewrite

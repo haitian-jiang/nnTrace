@@ -57,6 +57,8 @@ def _merge_distr_logs(log_path: str, t_type: TType) -> None:
     """
     merged_file_path = Path(log_path) / f"{t_type}.pt"
     if merged_file_path.exists():
+        clog.warning(f"{t_type}.pt already exists, skip merging. "
+                     "Please delete it to re-merge.")
         return
 
     raw_log_dir = Path(log_path) / t_type
@@ -99,11 +101,13 @@ def _merge_distr_logs(log_path: str, t_type: TType) -> None:
         desc=f"Merging {t_type} logs"
     ):
         merged_logs[c_name] = _merge_logs(c_name, log_shards, t_type)[1]
-    
+
     for canonical_name in canonical_names:
         assert canonical_name in merged_logs
     trim_word_embeddings(merged_logs)
     torch.save(merged_logs, merged_file_path)
+    with open(Path(log_path) / f"{t_type}.txt", "w") as f:
+        f.write(str(merged_logs))
     clog.info(f"Saved merged logs to {merged_file_path}")
 
 

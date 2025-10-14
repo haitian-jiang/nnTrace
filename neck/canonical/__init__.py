@@ -5,6 +5,7 @@ from .model_parallel import (
     trim_word_embeddings,
 )
 from .data_parallel import calc_global_batch_id
+from . import dataset
 
 __all__ = [
     "GOT_PARALLEL_STATES",
@@ -13,4 +14,5 @@ __all__ = [
     "infer_slice",
     "trim_word_embeddings",
     "calc_global_batch_id",
+    "dataset",
 ]

@@ -78,6 +78,23 @@ def randn(
     return result.contiguous()
 
 
+def randint(
+        low: int, high: int, 
+        name: str, 
+        shard_slice: ShardNDSlices, 
+        device="cpu", 
+        dtype=torch.int32,
+    ) -> torch.Tensor:
+    seed = xxhash.xxh64(name).intdigest()
+    g = torch.Generator(device=device)
+    g.manual_seed(seed)
+    result = torch.zeros(shard_slice.local_shape, device=device, dtype=dtype)
+    virtual_full_matrix = torch.randint(low, high, shard_slice.local_shape, generator=g, device=device, dtype=dtype)
+    for local_, global_ in shard_slice.slice_map.items():
+        result[local_.pyslice] = virtual_full_matrix[global_.pyslice]
+    return result.contiguous()
+
+
 def rand_mask(
     name: str,
     shard_slice: ShardNDSlices,

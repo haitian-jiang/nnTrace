@@ -1,0 +1,38 @@
+# NOTE: be careful with tp_dim, since Linear layers calculate Y = XW^T + b
+tok_embeddings.weight:
+  tp_dim: 0
+
+attention_norm.weight:  # no bias
+  tp_dim: null  # sequence parallel
+
+attention.wq.weight:  # no bias
+  tp_dim: 0  # colwise_parallel
+
+attention.wk.weight:
+  tp_dim: 0
+
+attention.wv.weight:
+  tp_dim: 0
+
+attention.wo.weight:
+  tp_dim: 1  # rolwise
+
+norm.weight:
+  tp_dim: null
+
+output.weight:
+  tp_dim: 0
+
+# ---------------test
+feed_forward.w1.weight:
+  tp_dim: null
+
+feed_forward.w2.weight:
+  tp_dim: null
+
+feed_forward.w3.weight:
+  tp_dim: null
+
+ffn_norm.weight:
+  tp_dim: null
+# ---------------test

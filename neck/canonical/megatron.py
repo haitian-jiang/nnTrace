@@ -12,7 +12,6 @@ from neck.structs import (
 )
 
 
-
 def get_megatron_lm_parallel_rank() -> OmegaConf:
 
     from megatron.core import parallel_state
@@ -125,28 +124,6 @@ def to_canonical_param_mod_megatron(
 
     name_decomp[layer_id_index] = str(global_layer_id)
     return ".".join(name_decomp)
-
-
-    # # checking, if full_shape and slices are proveded in annotation
-    # if annotation.full is not None or annotation.slice is not None:
-    #     hidden_size = CONFIG.architecture.hidden_size
-    #     seq_length = CONFIG.architecture.seq_length
-    #     _allowed_locals = {
-    #         "tp_size": tp_size,
-    #         "hidden_size": hidden_size,
-    #         "seq_length": seq_length
-    #     }
-    
-    # if annotation.full is not None:
-    #     annotation_full_shape = eval(annotation.full, {}, _allowed_locals)
-    #     annotation_full_shape = torch.Size(annotation_full_shape)
-    #     assert full_shape == annotation_full_shape, \
-    #         f"Full shape mismatch: {full_shape} vs {annotation_full_shape}"
-        
-    # if annotation.slice is not None:
-    #     annotation_slice_shape = eval(annotation.slice, {}, _allowed_locals)
-    #     assert runtime_shape == annotation_slice_shape, \
-    #         f"Slice mismatch: {ndslice} vs {annotation_slice_shape}"
 
 
 def infer_slice_megatron(

@@ -1,0 +1,123 @@
+# module_name:
+#   turnoff: False
+#   fused: null or list of module_name
+#   input:  # tensor annotation
+#     tp_dim: null or int
+#   output:  # tensor annotation
+#     tp_dim: null or int
+#   rewrite_input: False
+#   rewrite_grad_output: False
+#   input_idx: null
+#   output_idx: null  # null means only one output, so it will be a tensor.
+#   grad: null or 
+#     input: bool
+#     output: bool
+
+
+tok_embeddings:
+  input:
+    tp_dim: null
+  output:
+    tp_dim: null
+
+attention_norm:
+  input:
+    tp_dim: null
+  output:
+    tp_dim: null
+  grad:
+    input: True
+    output: True
+
+attention.wq:
+  input:
+    tp_dim: null
+  output:
+    tp_dim: null
+  grad:
+    input: True
+    output: True
+
+attention.wk:
+  input:
+    tp_dim: null
+  output:
+    tp_dim: null
+  grad:
+    input: True
+    output: True
+
+attention.wv:
+  input:
+    tp_dim: null
+  output:
+    tp_dim: null
+  grad:
+    input: True
+    output: True
+
+attention.sdpa:
+  input:
+    tp_dim: null
+  output:
+    tp_dim: null
+  grad:
+    input: True
+    output: True
+
+attention.wo:
+  output:
+    tp_dim: null
+  grad:
+    output: True
+
+ffn_norm:
+  input:
+    tp_dim: null
+  output:
+    tp_dim: null
+  grad:
+    input: True
+    output: True
+
+feed_forward.w1:
+  input:
+    tp_dim: null
+  output:
+    tp_dim: null
+  grad:
+    input: True
+    output: True
+
+feed_forward.w2:
+  input:
+    tp_dim: null
+  output:
+    tp_dim: null
+  grad:
+    input: True
+    output: True
+
+feed_forward.w3:
+  input:
+    tp_dim: null
+  output:
+    tp_dim: null
+  grad:
+    input: True
+    output: True
+
+norm:
+  input:
+    tp_dim: null
+  output:
+    tp_dim: null
+  grad:
+    input: True
+    output: True
+
+output:
+  output:
+    tp_dim: null
+  grad:
+    output: True
