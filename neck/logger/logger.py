@@ -82,13 +82,13 @@ def post_processing_before_save(LOGS):
     elif CONFIG.parallel.framework == "transformers":
         from neck.canonical.transformers import post_processing_before_save_transformers
         post_processing_before_save_transformers(LOGS)
+    elif CONFIG.parallel.framework == "TorchTitan":
+        pass
     else:
-        raise NotImplementedError(
-            f"Parallel framework {CONFIG.parallel.framework} is not supported."
-        )
+        pass
 
 
-def _exit_hook():
+def _exit_hook(filedir: str = None):
     try:
         rank = get_parallel_states().rank.world_rank
         if not CONFIG.logging.enable_logging:
@@ -105,22 +105,25 @@ def _exit_hook():
                 suffix = "single" if world_size == 1 else "distr"
                 run_name = f"{time_name}-{suffix}"
         run_dir = Path(CONFIG.logging.disk.log_path) / f"{run_name}"
+        if filedir is not None:
+            run_dir = Path(filedir)
         run_dir.mkdir(parents=True, exist_ok=True)
         for t_type in TType:
         #     # trim word embeddings to vocab_size for single GPU
         #     if world_size == 1:
         #         trim_word_embeddings(LOGS[t_type])
             save_logs(t_type, run_dir)
+        LOGS = defaultdict(dict)
     except AssertionError:
         # in get_parallel_states, torch.distributed is not initialized
         clog.debug("[Developing mode]: Bye!")
 
 
-def save_all_logs_before_exit():
+def save_all_logs_before_exit(filedir: str = None):
     """
     Call the exit hook to save all logs before exiting and unregister the hook.
     """
-    _exit_hook()
+    _exit_hook(filedir)
     atexit.unregister(_exit_hook)
 
 

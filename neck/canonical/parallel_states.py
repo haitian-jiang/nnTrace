@@ -4,6 +4,7 @@ from neck import CONFIG
 from .megatron import get_megatron_lm_parallel_rank, get_megatron_parallel_options
 from .vllm import get_vllm_parallel_rank, get_vllm_parallel_options
 from .transformers import get_transformers_parallel_rank
+from .torchtitan import get_torchtitan_parallel_rank
 
 
 GOT_PARALLEL_STATES = False
@@ -33,6 +34,8 @@ def get_parallel_states(device_mesh=None) -> OmegaConf:
         get_vllm_parallel_options()
     elif CONFIG.parallel.framework == "transformers":
         results = get_transformers_parallel_rank(device_mesh)
+    elif CONFIG.parallel.framework == "TorchTitan":
+        results = get_torchtitan_parallel_rank(device_mesh)
     else:
         raise NotImplementedError(
             f"Parallel framework {CONFIG.parallel.framework} is not supported."

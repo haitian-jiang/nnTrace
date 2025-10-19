@@ -82,6 +82,8 @@ class reshape_q_k_v_hook:
         Args:
             module: q_proj or k_proj or v_proj
             q_k_v: q or k or v
+            TODO: In the case num_head can not be divided by tp_size, HF will shard head_dim.
+            TODO: Need to update the infer_slice.
         """
         # below copied from transformers LlamaAttention.forward
         input_shape = q_k_v.shape[:-1]  # (batch_size, sequence_length)
@@ -107,8 +109,6 @@ def register_reshape_hook(module: torch.nn.Module, head_dim: int):
 
 
 def post_processing_before_save_transformers(LOGS: dict[TType, dict[str, TensorInfo]]) -> None:
-    # from neck import smart_trace; smart_trace()
-    # return
     activ = LOGS[TType.activ]
     temp_activ_dict: dict[str, dict[int, TensorInfo]] = defaultdict(dict)
     for cname, info in activ.items():

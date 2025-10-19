@@ -2,6 +2,7 @@ import math
 import torch
 import torch.nn as nn
 import neck.random
+import neck.utils
 from neck import CONFIG
 from typing import Optional
 from neck.structs import (
@@ -29,13 +30,14 @@ from neck.logger import (
 def _check_vp_rank(
     model: torch.nn.Module,
     vp_rank: Optional[int] = None,
+    world_mesh=None,
 ):
     """
     Check the model and virtual pipeline rank are valid.
     Used for reinit_model and register_model_hooks.
     """
     assert isinstance(model, nn.Module), "model must be a torch.nn.Module"
-    get_parallel_states()
+    get_parallel_states(world_mesh)
     if CONFIG.parallel.size.vp_size is None:
         assert vp_rank is None or vp_rank ==0, \
             "vp_rank must be None or 0 if virtual pipeline is not used"
@@ -51,20 +53,22 @@ def _check_vp_rank(
 def reinit_model(
     model: torch.nn.Module, 
     vp_rank: Optional[int] = None,
+    *,
     log_params: bool = True,
     initialization: str = "kaiming_uniform",
+    world_mesh=None,
 ) -> None:
     """
     Reinitialize the model parameter tensors to be consistent.  
     Virtual pipeline rank cannot be inferred, so it must be provided.
     If virtual pipeline is not used, vp_rank should be None.
     """
-    vp_rank = _check_vp_rank(model, vp_rank)
+    vp_rank = _check_vp_rank(model, vp_rank, world_mesh)
     assert isinstance(vp_rank, int), "vp_rank must be an integer"
     
     # check that the model has already been initialized
     assert (
-        any(param.numel() > 0 for param in model.parameters()) and \
+        all(param.numel() > 0 for param in model.parameters()) and \
         hasattr(model, "state_dict")
     ), "model has not been initialized"
 
@@ -106,8 +110,7 @@ def reinit_model(
             log_tensor(full_cname, TType.param, tensor_info)
 
         new_param = new_param.to(param.device)
-        param.data.copy_(new_param.data)
-
+        neck.utils.rewrite_tensor_data(param, new_param)
 
         param.register_hook(
             ParamLogHook(
@@ -143,6 +146,7 @@ def filter_module_annotation(m_annotation: ModuleAnnotation) -> ModuleAnnotation
 def register_model_hooks(
     model: torch.nn.Module,
     vp_rank: Optional[int] = None,
+    *,
     forward_only: bool = False,
     model_for_batch_cnt: Optional[torch.nn.Module] = None,
 ):

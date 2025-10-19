@@ -34,6 +34,11 @@ def get_param_full_cname(canon_param_name: str, t_type: TType) -> str:
     return f"iter.{iter_cnt}|{canon_param_name}|{t_type}"
 
 
+def _should_execute_fwd_hook() -> bool:
+    # TorchTitan will execute a fake forward pass in eval mode for PP initialization.
+    return torch.is_grad_enabled() or CONFIG.parallel.framework != "TorchTitan"
+
+
 __doc__ = """
 Log hooks (either forward or backward) should only log unmodified tensors.
 Rewrite hooks should always happen after log hooks.
@@ -142,6 +147,10 @@ class FwdPreHook(ModuleHookBase, ABC):
         """
         assert module is self.module, \
             f"module mismatch in {self.canon_mod_name} pre log"
+        # NOTE: this is for escaping TorchTitan's first forward pass in PP. 
+        # It may ignore the forward pass in Megatron-LM when activation checkpointing is on with eval mode!
+        if not _should_execute_fwd_hook():
+            return
         if len(args) == 1:
             self.m_annotation.input_idx = [0]
         if self.m_annotation.input_idx is not None:
@@ -226,6 +235,8 @@ class FwdPostHook(ModuleHookBase, ABC):
             assert module == self.module, f"module mismatch in {self.canon_mod_name} post hook"
         assert isinstance(output, torch.Tensor) or isinstance(output, tuple), \
             "fwd_post_hook expects a tensor or a tuple of tensors"
+        if not _should_execute_fwd_hook():
+            return
         
         if isinstance(output, torch.Tensor):
             self.action(output, 0)
@@ -545,6 +556,8 @@ class BatchCounterHook:
         self.is_fwd = is_fwd
 
     def __call__(self, module: torch.nn.Module, args: tuple):
+        if self.is_fwd and not _should_execute_fwd_hook():
+            return
         if self.is_fwd:
             fwd_pass_cnt[self.vp_rank] += 1
         else:
