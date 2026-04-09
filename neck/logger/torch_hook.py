@@ -665,7 +665,7 @@ class PerturbationHook:
                 "PerturbationHook expects a tuple of tensors given id."
             tensor = args[self.tensor_id]
         assert isinstance(tensor, torch.Tensor), "PerturbationHook expects a tensor."
-        perturbed_tensor = tensor + self.perturbation * torch.randn_like(tensor)
+        perturbed_tensor = tensor + self.perturbation * torch.randn_like(tensor) * tensor
         tensor.data.copy_(perturbed_tensor.data)
 
 
