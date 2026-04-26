@@ -26,15 +26,8 @@ def _merge_logs(
         for info in log_shards[1:]:
             assert info.shard_slice.is_full(), \
                 "Conflicting shapes for the same canonical name."
-        # check if the full tensors are the same
-        all_same = all(
-            torch.allclose(log_shards[0].tensor, info.tensor) 
-            for info in log_shards[1:]
-        )
-        if all_same:
-            return c_name, log_shards[0]
-        # check if need finalize grad
-        elif (
+        # check if need finalize grad (must sum across ranks)
+        if (
             t_type is TType.g_param and
             all(
                 info.extra.get("need_finalize_grad", False)
@@ -42,6 +35,13 @@ def _merge_logs(
             )
         ):
             return c_name, TensorInfo.add_tensor_info(log_shards)
+        # check if the full tensors are the same
+        all_same = all(
+            torch.allclose(log_shards[0].tensor, info.tensor)
+            for info in log_shards[1:]
+        )
+        if all_same:
+            return c_name, log_shards[0]
         else:
             clog.error(f"{t_type}: Conflicting full tensors: {c_name}, not merged.")
             # TODO: Can decide what to store in the merged logs later.

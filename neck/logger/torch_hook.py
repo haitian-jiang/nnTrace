@@ -631,7 +631,7 @@ class ParamLogHook:
 class PerturbationHook:
     def __init__(
         self,
-        scale: float = 0.25,
+        scale: float = 0.5,
         mch_eps: float = 2**-7,
         tensor_id: Optional[str] = None,
     ):
@@ -644,8 +644,9 @@ class PerturbationHook:
                        If None, then only one tensor in the module forward pass.
                        Otherwise, has to provide the tensor id to distinguish.
         """
-        self.perturbation = scale * mch_eps
+        self.scale = scale
         self.tensor_id = tensor_id
+        self.mch_eps = mch_eps
 
     def __call__(
         self,
@@ -665,7 +666,9 @@ class PerturbationHook:
                 "PerturbationHook expects a tuple of tensors given id."
             tensor = args[self.tensor_id]
         assert isinstance(tensor, torch.Tensor), "PerturbationHook expects a tensor."
-        perturbed_tensor = tensor + self.perturbation * torch.randn_like(tensor) * tensor
+        perturbation = torch.randn_like(tensor)
+        perturbation *= (self.mch_eps * tensor.norm() / perturbation.norm())
+        perturbed_tensor = tensor + perturbation * self.scale
         tensor.data.copy_(perturbed_tensor.data)
 
 

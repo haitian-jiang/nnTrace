@@ -88,7 +88,12 @@ def to_canonical_param_mod_megatron(
     stg3      (6,7)/3    (14,15)/7    (22,23)/11
     """
     assert vp_rank >= 0, "vp_rank wrong."
-    
+
+    # fp32 mode has no Float16Module wrapper: "module.decoder..." vs bf16's
+    # "module.module.decoder...". Normalize by inserting "module." after DDP prefix.
+    if CONFIG.architecture.datatype == "fp32" and not local_name.startswith("module.module."):
+        local_name = "module.module." + local_name[len("module."):]
+
     name_decomp = local_name.split(".")
     layer_id_index, local_layer_id = None, None
     for i, part in enumerate(name_decomp):
@@ -126,6 +131,59 @@ def to_canonical_param_mod_megatron(
     return ".".join(name_decomp)
 
 
+def _infer_slice_interleaved_tp(
+    local_shape: torch.Size,
+    annotation: TensorAnnotation,
+    tp_size: int,
+    tp_rank: int,
+) -> ShardNDSlices:
+    """
+    Handle heterogeneous TP sharding where the TP dimension is composed of
+    multiple sub-components with different sizes. Each component is independently
+    sharded across TP ranks (e.g., Mamba's in_proj output = [z, x, B, C, dt]).
+
+    annotation.tp_split_sizes gives the FULL sizes of each component along tp_dim.
+    Each component's full size must be divisible by tp_size.
+    """
+    tp_dim = annotation.tp_dim
+    tp_split_sizes = annotation.tp_split_sizes  # full sizes per component
+
+    # Compute full shape
+    full_shape = list(local_shape)
+    full_shape[tp_dim] = sum(tp_split_sizes)
+    full_shape = torch.Size(full_shape)
+
+    # Verify local shape consistency
+    local_component_sizes = [s // tp_size for s in tp_split_sizes]
+    assert all(s % tp_size == 0 for s in tp_split_sizes), \
+        f"All tp_split_sizes must be divisible by tp_size={tp_size}, got {tp_split_sizes}"
+    assert sum(local_component_sizes) == local_shape[tp_dim], \
+        f"Sum of local component sizes {sum(local_component_sizes)} != local dim {local_shape[tp_dim]}"
+
+    # Build multi-entry slice_map: one entry per component
+    ndim = len(local_shape)
+    slice_map = {}
+    local_offset = 0
+    global_offset = 0
+    for comp_full_size, comp_local_size in zip(tp_split_sizes, local_component_sizes):
+        local_slices = [NeckSlice(0, dim) for dim in local_shape]
+        local_slices[tp_dim] = NeckSlice(local_offset, local_offset + comp_local_size)
+
+        global_slices = [NeckSlice(0, dim) for dim in local_shape]
+        # Non-tp dims: same as local (full range)
+        # tp_dim: component starts at global_offset, rank gets its chunk
+        global_slices[tp_dim] = NeckSlice(
+            global_offset + tp_rank * comp_local_size,
+            global_offset + (tp_rank + 1) * comp_local_size,
+        )
+
+        slice_map[NDSlice(local_slices)] = NDSlice(global_slices)
+        local_offset += comp_local_size
+        global_offset += comp_full_size
+
+    return ShardNDSlices(full_shape, local_shape, slice_map)
+
+
 def infer_slice_megatron(
     local_shape: torch.Size,
     annotation: Optional[TensorAnnotation] = None,
@@ -136,7 +194,7 @@ def infer_slice_megatron(
 
     if annotation is None:  # no sharding
         return ShardNDSlices(local_shape)
-    
+
     tp_dim = annotation.tp_dim  # None if not sharded, otherwise int
     sp_dim = annotation.sp_dim  # None if not sharded, otherwise 0
     cp_dim = annotation.cp_dim  # None if not sharded, otherwise int
@@ -156,6 +214,24 @@ def infer_slice_megatron(
     if cp_size == 1:  # no CP
         cp_dim = None
 
+    # Interleaved TP: heterogeneous components along tp_dim
+    # tp_split_sizes can be:
+    #   - a list of ints: explicit full sizes per component (e.g., Mamba in_proj)
+    #   - an int N: split into N equal components (e.g., SwiGLU gate+value → 2)
+    if (annotation.tp_split_sizes is not None
+        and tp_dim is not None and tp_size > 1):
+        if isinstance(annotation.tp_split_sizes, int):
+            n_components = annotation.tp_split_sizes
+            full_dim = local_shape[tp_dim] * tp_size
+            assert full_dim % n_components == 0, \
+                f"full dim {full_dim} not divisible by n_components={n_components}"
+            annotation = TensorAnnotation(
+                tp_dim=annotation.tp_dim,
+                tp_split_sizes=[full_dim // n_components] * n_components,
+            )
+        return _infer_slice_interleaved_tp(
+            local_shape, annotation, tp_size, tp_rank)
+
     # calculate the full shape
     full_shape = list(local_shape)
     if tp_dim is not None:
@@ -170,10 +246,10 @@ def infer_slice_megatron(
     if cp_dim is None:
         global_ = [NeckSlice(0, dim) for dim in local_shape]
         if tp_dim is not None:
-            global_[tp_dim] = NeckSlice(local_shape[tp_dim] * tp_rank, 
+            global_[tp_dim] = NeckSlice(local_shape[tp_dim] * tp_rank,
                                         local_shape[tp_dim] * (tp_rank + 1))
         if sp_dim is not None:
-            global_[sp_dim] = NeckSlice(local_shape[sp_dim] * tp_rank, 
+            global_[sp_dim] = NeckSlice(local_shape[sp_dim] * tp_rank,
                                         local_shape[sp_dim] * (tp_rank + 1))
         slice_map = {NDSlice(local_shape): NDSlice(global_)}
         return ShardNDSlices(full_shape, local_shape, slice_map)
@@ -293,9 +369,13 @@ def _rescale_grad_for_loss_cp_rescale_hook(
 
 _need_finalize_suffix = [
     # sequence parallel
-    "layernorm", "layer_norm", 
-    "self_attention.linear_proj.bias", 
-    "mlp.linear_fc2.bias", 
+    "layernorm", "layer_norm",
+    "self_attention.linear_proj.bias",
+    "mlp.linear_fc2.bias",
+    # sequence parallel + MoE experts: each rank computes gradients from its
+    # local sequence partition; finalize_model_grads all-reduces them.
+    "local_experts",
+    "router.weight", "router.bias",
     # pipeline parallel
     "embedding.word_embeddings.weight",
     "embedding.position_embeddings.weight",

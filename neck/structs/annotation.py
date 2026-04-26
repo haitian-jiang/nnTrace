@@ -34,6 +34,7 @@ class TensorAnnotation:
     tp_dim: Optional[int] = None
     sp_dim: Optional[int] = None
     cp_dim: Optional[int] = None  # only for activations
+    tp_split_sizes: Optional[list[int]] = None  # for heterogeneous TP sharding
     full: Optional[str] = None
     slice: Optional[str] = None
 

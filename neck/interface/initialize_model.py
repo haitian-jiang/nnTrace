@@ -1,4 +1,5 @@
 import math
+import os
 import torch
 import torch.nn as nn
 import neck.random
@@ -99,6 +100,14 @@ def reinit_model(
         if initialization == "kaiming_uniform":
             new_param = (2 * new_param - 1) / math.sqrt(shard_slice.full_shape[-1])
         # TODO: other initialization
+
+        # LayerNorm/RMSNorm gamma should be centered at 1, not 0, otherwise
+        # the normalized activations get multiplied by near-zero gamma and the
+        # whole downstream (e.g. SwiGLU) collapses to near-zero — which makes
+        # normwise relative error ill-conditioned. Shift gamma init by +1.
+        _low = name.lower()
+        if "norm" in _low and "weight" in _low:
+            new_param = new_param + 1.0
 
         new_param = new_param.to(param.dtype)
         if log_params:

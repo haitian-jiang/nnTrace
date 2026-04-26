@@ -38,8 +38,10 @@ def parse_megatron_config(args) -> None:
         NECK_CONFIG.architecture.share_embeddings_and_output_weights = share
     if getattr(args, "bf16", False):
         NECK_CONFIG.architecture.datatype = "bf16"
-    if getattr(args, "fp16", False):
+    elif getattr(args, "fp16", False):
         NECK_CONFIG.architecture.datatype = "fp16"
+    else:
+        NECK_CONFIG.architecture.datatype = "fp32"
     if getattr(args, "calculate_per_token_loss", False):
         NECK_CONFIG.architecture.calculate_per_token_loss = True
     if getattr(args, "use_distributed_optimizer", False):
