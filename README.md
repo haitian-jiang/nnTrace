@@ -1,6 +1,3 @@
-# TTrace: Lightweight Error Checking and Diagnosis for Distributed Training
-
-📄 **You can check our paper on [arxiv](https://www.arxiv.org/abs/2506.09280)!**
 
 ## Preparation
 
@@ -49,7 +46,7 @@ Step 2. Install Megatron-LM and its supporting libraries
   ```
 
 
-## Install TTrace from source
+## Install from source
 
 The C++ extension has dependency on TBB on Linux.  Below is the way to
 install TBB locally in python env (if TBB is installed globally and
@@ -71,7 +68,7 @@ Current build process requires a conda environment with torch and pybind11.
 
 ```bash
 conda activate neck
-git clone git@github.com:haitian-jiang/NECK.git && cd NECK
+# clone the repo and enter
 # make sure the necessary build tools are installed
 pip install setuptools>=68.2.2 cmake==3.29.2 ninja==1.11.1.1 wheel>=0.44
 # --no-build-isolation is important because the building procedure

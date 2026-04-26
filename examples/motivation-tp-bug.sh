@@ -18,7 +18,6 @@ export NECK_RUN_NAME=
 #         delete "output_parallel[input_mask, :] = 0.0" and add
 #      ```buggy_input_mask = (masked_input < self.vocab_start_index) | (masked_input >= self.vocab_end_index)
 #      ```output_parallel[buggy_input_mask, :] = 0.0
-#         See details at: https://github.com/haitian-jiang/Megatron-LM/commit/c4b52da36c90d9fd849c59a0f6e839326ab8abd7
 # Step 4. Add some print statements in the forward() function and run with --train-iters 1
 #         to see if the buggy code is actually executed.
 # Step 4. Run this script (--train-iters 10000) and SAVE the checkpoint. 
@@ -31,7 +30,6 @@ export NECK_RUN_NAME=
 #         Maybe you need to delete the latest_checkpoint.txt in the checkpoint folder,
 #         I don't know for sure how this validation can be conducted.
 #         Maybe you can bypass Megatron's own checkpoint loading and saving, see this for details:
-#         https://github.com/haitian-jiang/Megatron-LM/commit/c9cd15f25686c9bfaaff3eabbd8e063fb8c6c73c
 
 # ----- Train the correct model -----
 # Step 7. Using correct code (recover the injected bug), 

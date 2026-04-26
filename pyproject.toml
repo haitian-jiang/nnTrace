@@ -27,8 +27,3 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["tqdm"]
-
-# URLs for your project, like documentation or the source repository.
-[project.urls]
-Homepage = "https://github.com/haitian-jiang/NECK"
-Repository = "https://github.com/haitian-jiang/NECK"
